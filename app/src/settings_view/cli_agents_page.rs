@@ -43,7 +43,7 @@ use crate::menu::{MenuItem, MenuItemFields};
 use crate::settings::{
     AISettings, AISettingsChangedEvent, AutoDismissRichInputAfterSubmit,
     AutoOpenRichInputOnCLIAgentStart, AutoToggleRichInput, ShouldRenderCLIAgentToolbar,
-    SubmitRichInputOnCtrlEnter,
+    SubmitRichInputOnCtrlEnter, settings_text,
 };
 use crate::terminal::CLIAgent;
 use crate::util::bindings;
@@ -67,7 +67,7 @@ impl CLIAgentsPageView {
         let cli_agent_footer_command_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|s| Regex::new(s).is_ok());
-            input.set_placeholder_text("command (supports regex)", ctx);
+            input.set_placeholder_text(settings_text("command (supports regex)", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -158,6 +158,9 @@ impl CLIAgentsPageView {
                     dropdown.set_menu_width(180., ctx);
                     dropdown.set_main_axis_size(MainAxisSize::Min, ctx);
 
+                    let other_label = settings_text("Other", ctx);
+                    let select_coding_agent = settings_text("Select coding agent", ctx);
+
                     let mut items: Vec<MenuItem<DropdownAction>> = Vec::new();
 
                     for agent in all::<CLIAgent>() {
@@ -179,7 +182,7 @@ impl CLIAgentsPageView {
                     }
 
                     items.push(
-                        MenuItemFields::new("Other")
+                        MenuItemFields::new(other_label)
                             .with_on_select_action(DropdownAction::select_action_and_close(
                                 CLIAgentsPageAction::SetCLIAgentForCommand {
                                     pattern: pattern_clone.clone(),
@@ -191,16 +194,16 @@ impl CLIAgentsPageView {
 
                     dropdown.set_rich_items(items, ctx);
 
-                    dropdown.set_menu_header_text_override(|label| {
-                        if label == "Other" {
-                            "Select coding agent".to_string()
+                    dropdown.set_menu_header_text_override(move |label| {
+                        if label == other_label {
+                            select_coding_agent.to_string()
                         } else {
                             label.to_string()
                         }
                     });
 
                     let selected_name = if matches!(current_agent, CLIAgent::Unknown) {
-                        "Other"
+                        other_label
                     } else {
                         current_agent.display_name()
                     };
@@ -417,7 +420,7 @@ impl SettingsWidget for CLIAgentWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent claude codex gemini toolbar footer quick actions show"
+        "third party cli coding agent claude codex gemini toolbar footer quick actions show 显示编码智能体工具栏 运行编码智能体时显示快捷操作工具栏"
     }
 
     fn render(
@@ -429,7 +432,7 @@ impl SettingsWidget for CLIAgentWidget {
         let ai_settings = AISettings::as_ref(app);
 
         let cli_agent_footer_toggle = render_ai_setting_toggle::<ShouldRenderCLIAgentToolbar>(
-            "Show coding agent toolbar",
+            settings_text("Show coding agent toolbar", app),
             CLIAgentsPageAction::ToggleCLIAgentToolbar,
             *ai_settings.should_render_cli_agent_footer,
             true,
@@ -439,13 +442,14 @@ impl SettingsWidget for CLIAgentWidget {
         );
 
         let description_fragments = vec![
-            FormattedTextFragment::plain_text(
+            FormattedTextFragment::plain_text(settings_text(
                 "Show a toolbar with quick actions when running coding agents like ",
-            ),
+                app,
+            )),
             FormattedTextFragment::inline_code("claude"),
             FormattedTextFragment::plain_text(", "),
             FormattedTextFragment::inline_code("codex"),
-            FormattedTextFragment::plain_text(", or "),
+            FormattedTextFragment::plain_text(settings_text(", or ", app)),
             FormattedTextFragment::inline_code("gemini"),
             FormattedTextFragment::plain_text("."),
         ];
@@ -490,7 +494,7 @@ impl SettingsWidget for CLIAgentAutoToggleRichInputWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent rich input auto show hide status plugin"
+        "third party cli coding agent rich input auto show hide status plugin 根据智能体状态自动显示或隐藏富输入 需要为你的编码智能体安装 Warp 插件"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -508,14 +512,14 @@ impl SettingsWidget for CLIAgentAutoToggleRichInputWidget {
         }
 
         let label = render_body_item_label::<CLIAgentsPageAction>(
-            "Auto show/hide Rich Input based on agent status".into(),
+            settings_text("Auto show/hide Rich Input based on agent status", app).to_string(),
             Some(styles::header_font_color(true, app)),
             Some(AdditionalInfo {
                 mouse_state: self.info_tooltip.clone(),
                 on_click_action: None,
                 secondary_text: None,
                 tooltip_override_text: Some(
-                    "Requires the Warp plugin for your coding agent".to_owned(),
+                    settings_text("Requires the Warp plugin for your coding agent", app).to_owned(),
                 ),
             }),
             LocalOnlyIconState::for_setting(
@@ -552,7 +556,7 @@ impl SettingsWidget for CLIAgentAutoOpenRichInputWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent rich input auto open session start"
+        "third party cli coding agent rich input auto open session start 编码智能体会话启动时自动打开富输入"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -570,7 +574,10 @@ impl SettingsWidget for CLIAgentAutoOpenRichInputWidget {
         }
 
         render_ai_setting_toggle::<AutoOpenRichInputOnCLIAgentStart>(
-            "Auto open Rich Input when a coding agent session starts",
+            settings_text(
+                "Auto open Rich Input when a coding agent session starts",
+                app,
+            ),
             CLIAgentsPageAction::ToggleAutoOpenRichInputOnCLIAgentStart,
             *AISettings::as_ref(app).auto_open_rich_input_on_cli_agent_start,
             true,
@@ -590,7 +597,7 @@ impl SettingsWidget for CLIAgentAutoDismissRichInputWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent rich input auto dismiss prompt submission"
+        "third party cli coding agent rich input auto dismiss prompt submission 提示提交后自动关闭富输入"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -608,7 +615,7 @@ impl SettingsWidget for CLIAgentAutoDismissRichInputWidget {
         }
 
         render_ai_setting_toggle::<AutoDismissRichInputAfterSubmit>(
-            "Auto dismiss Rich Input after prompt submission",
+            settings_text("Auto dismiss Rich Input after prompt submission", app),
             CLIAgentsPageAction::ToggleAutoDismissRichInputAfterSubmit,
             *AISettings::as_ref(app).auto_dismiss_rich_input_after_submit,
             true,
@@ -628,7 +635,7 @@ impl SettingsWidget for CLIAgentSubmitRichInputWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent rich input submit ctrl enter newline"
+        "third party cli coding agent rich input submit ctrl enter newline 使用 Ctrl+Enter 提交富输入"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -646,7 +653,7 @@ impl SettingsWidget for CLIAgentSubmitRichInputWidget {
         }
 
         render_ai_setting_toggle::<SubmitRichInputOnCtrlEnter>(
-            "Submit Rich Input with Ctrl+Enter",
+            settings_text("Submit Rich Input with Ctrl+Enter", app),
             CLIAgentsPageAction::ToggleSubmitRichInputOnCtrlEnter,
             *AISettings::as_ref(app).submit_on_ctrl_enter,
             true,
@@ -663,7 +670,7 @@ impl SettingsWidget for CLIAgentCommandsWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent claude codex gemini toolbar commands regex patterns"
+        "third party cli coding agent claude codex gemini toolbar commands regex patterns 启用工具栏的命令 添加正则表达式在命令匹配时显示编码智能体工具栏"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -684,7 +691,7 @@ impl SettingsWidget for CLIAgentCommandsWidget {
         list_column.add_child(
             appearance
                 .ui_builder()
-                .span("Commands that enable the toolbar".to_string())
+                .span(settings_text("Commands that enable the toolbar", app).to_string())
                 .with_style(UiComponentStyles {
                     font_size: Some(CONTENT_FONT_SIZE),
                     ..Default::default()
@@ -767,7 +774,10 @@ impl SettingsWidget for CLIAgentCommandsWidget {
 
         let description = appearance
             .ui_builder()
-            .paragraph("Add regex patterns to show the coding agent toolbar for matching commands.")
+            .paragraph(settings_text(
+                "Add regex patterns to show the coding agent toolbar for matching commands.",
+                app,
+            ))
             .with_style(UiComponentStyles {
                 font_size: Some(appearance.ui_font_size()),
                 font_color: Some(styles::description_font_color(true, app).into()),
@@ -795,7 +805,7 @@ impl SettingsWidget for CLIAgentToolbarLayoutWidget {
     type View = CLIAgentsPageView;
 
     fn search_terms(&self) -> &str {
-        "third party cli coding agent toolbar layout chip chips rearrange re-arrange"
+        "third party cli coding agent toolbar layout chip chips rearrange re-arrange 工具栏布局"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {

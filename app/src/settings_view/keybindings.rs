@@ -30,7 +30,7 @@ use crate::editor::{
 };
 use crate::keyboard::{UserDefinedKeybinding, write_custom_keybinding};
 use crate::search_bar::SearchBar;
-use crate::settings::CloudPreferencesSettings;
+use crate::settings::{CloudPreferencesSettings, settings_text};
 use crate::util::bindings::{
     CommandBinding, filter_bindings_including_keystroke, reset_keybinding_to_default,
     set_custom_keybinding,
@@ -204,6 +204,7 @@ impl KeybindingRow {
         is_disabled: bool,
         has_conflicting_binding: bool,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let inner = if !is_disabled {
             let mut row = Hoverable::new(
@@ -217,7 +218,7 @@ impl KeybindingRow {
                         None
                     };
                     if self.editor_open {
-                        self.render_clicked(index, has_conflicting_binding, appearance)
+                        self.render_clicked(index, has_conflicting_binding, appearance, app)
                     } else {
                         self.render_summary(None, background, has_conflicting_binding, appearance)
                     }
@@ -310,10 +311,11 @@ impl KeybindingRow {
         index: usize,
         has_conflicting_binding: bool,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let conflict_warning = if has_conflicting_binding {
             render_text(
-                SHORTCUT_CONFLICT_WARNING_TEXT,
+                settings_text(SHORTCUT_CONFLICT_WARNING_TEXT, app),
                 Some(UiComponentStyles {
                     font_weight: Some(Weight::Bold),
                     ..Default::default()
@@ -324,7 +326,11 @@ impl KeybindingRow {
             Empty::new().finish()
         };
 
-        let press_new_shortcut_text = render_text("Press new keyboard shortcut", None, appearance);
+        let press_new_shortcut_text = render_text(
+            settings_text("Press new keyboard shortcut", app),
+            None,
+            appearance,
+        );
 
         let new_shortcut_element = Container::new(press_new_shortcut_text)
             .with_margin_left(ROW_LEFT_MARGIN)
@@ -360,7 +366,7 @@ impl KeybindingRow {
                             .finish(),
                         )
                         .with_child(
-                            Container::new(self.get_edit_button_row(appearance, index))
+                            Container::new(self.get_edit_button_row(appearance, index, app))
                                 .with_margin_right(CLEAR_CANCEL_BUTTONS_SPACING)
                                 .finish(),
                         )
@@ -392,7 +398,12 @@ impl KeybindingRow {
         }
     }
 
-    fn get_edit_button_row(&self, appearance: &Appearance, index: usize) -> Box<dyn Element> {
+    fn get_edit_button_row(
+        &self,
+        appearance: &Appearance,
+        index: usize,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let mut edit_buttons_based_on_state = Vec::new();
 
         if self.binding.trigger.is_some() {
@@ -400,7 +411,7 @@ impl KeybindingRow {
                 self.mouse_state_handles.remove_mouse_state.clone(),
                 |state| {
                     render_button(
-                        CLEAR_BUTTON_TEXT,
+                        settings_text(CLEAR_BUTTON_TEXT, app),
                         appearance,
                         self.get_button_text_color(appearance, state),
                     )
@@ -421,7 +432,7 @@ impl KeybindingRow {
                     .clone(),
                 |state| {
                     render_button(
-                        RESET_BUTTON_TEXT,
+                        settings_text(RESET_BUTTON_TEXT, app),
                         appearance,
                         self.get_button_text_color(appearance, state),
                     )
@@ -443,12 +454,20 @@ impl KeybindingRow {
                     let cancel_button_color = self.get_button_text_color(appearance, state);
                     if index == 0 {
                         SavePosition::new(
-                            render_button(CANCEL_BUTTON_TEXT, appearance, cancel_button_color),
+                            render_button(
+                                settings_text(CANCEL_BUTTON_TEXT, app),
+                                appearance,
+                                cancel_button_color,
+                            ),
                             "first_keybinding_cancel",
                         )
                         .finish()
                     } else {
-                        render_button("Cancel", appearance, cancel_button_color)
+                        render_button(
+                            settings_text("Cancel", app),
+                            appearance,
+                            cancel_button_color,
+                        )
                     }
                 },
             )
@@ -465,7 +484,7 @@ impl KeybindingRow {
         let save = Container::new(
             Hoverable::new(self.mouse_state_handles.save_mouse_state.clone(), |state| {
                 render_button(
-                    SAVE_BUTTON_TEXT,
+                    settings_text(SAVE_BUTTON_TEXT, app),
                     appearance,
                     self.get_button_text_color(appearance, state),
                 )
@@ -506,7 +525,7 @@ impl KeybindingsView {
 
         search_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
-            editor.set_placeholder_text(SEARCH_PLACEHOLDER, ctx);
+            editor.set_placeholder_text(settings_text(SEARCH_PLACEHOLDER, ctx), ctx);
         });
 
         let search_bar = ctx.add_typed_action_view(|_| SearchBar::new(search_editor.clone()));
@@ -802,7 +821,7 @@ impl SettingsPageMeta for KeybindingsView {
 
         self.search_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
-            editor.set_placeholder_text(SEARCH_PLACEHOLDER, ctx);
+            editor.set_placeholder_text(settings_text(SEARCH_PLACEHOLDER, ctx), ctx);
         });
 
         if allow_steal_focus {
@@ -968,10 +987,14 @@ impl KeybindingsWidget {
         &self,
         bindings: Option<&Vec<CommandBinding>>,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let font_size = appearance.ui_font_size() + FONT_DELTA;
         let mut description = Flex::column().with_child(render_text(
-            "Add your own custom keybindings to existing actions below.",
+            settings_text(
+                "Add your own custom keybindings to existing actions below.",
+                app,
+            ),
             Some(UiComponentStyles {
                 font_size: Some(font_size),
                 font_color: Some(
@@ -997,7 +1020,7 @@ impl KeybindingsWidget {
                 Wrap::row()
                     .with_child(
                         Container::new(render_text(
-                            "Use",
+                            settings_text("Use", app),
                             Some(UiComponentStyles {
                                 font_size: Some(font_size),
                                 font_color: Some(
@@ -1026,7 +1049,10 @@ impl KeybindingsWidget {
                     )
                     .with_child(
                         Container::new(render_text(
-                            "to reference these keybindings in a side pane at anytime.",
+                            settings_text(
+                                "to reference these keybindings in a side pane at anytime.",
+                                app,
+                            ),
                             Some(UiComponentStyles {
                                 font_size: Some(font_size),
                                 font_color: Some(
@@ -1053,6 +1079,7 @@ impl KeybindingsWidget {
         &self,
         view: &KeybindingsView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         if let Some(rows) = view.rows.as_ref() {
             let rows = Flex::column().with_children(
@@ -1064,6 +1091,7 @@ impl KeybindingsWidget {
                             view.modifying_row.is_some() && !row.editor_open,
                             view.conflict_map.has_conflict(&row.binding.trigger),
                             appearance,
+                            app,
                         )
                     })
                     .collect::<Vec<_>>(),
@@ -1093,7 +1121,7 @@ impl SettingsWidget for KeybindingsWidget {
     type View = KeybindingsView;
 
     fn search_terms(&self) -> &str {
-        "keybindings keyboard shortcuts hotkeys"
+        "keybindings keyboard shortcuts hotkeys 键盘快捷键 配置键盘快捷键 在下方为现有操作添加自定义快捷键"
     }
 
     fn render(
@@ -1106,7 +1134,10 @@ impl SettingsWidget for KeybindingsWidget {
         {
             Some(LocalOnlyIconState::Visible {
                 mouse_state: self.local_only_icon_mouse_state.clone(),
-                custom_tooltip: Some("Keyboard shortcuts are not synced to the cloud".to_string()),
+                custom_tooltip: Some(
+                    settings_text("Keyboard shortcuts are not synced to the cloud", app)
+                        .to_string(),
+                ),
             })
         } else {
             None
@@ -1114,17 +1145,17 @@ impl SettingsWidget for KeybindingsWidget {
 
         let subheader = render_sub_header(
             appearance,
-            "Configure keyboard shortcuts",
+            settings_text("Configure keyboard shortcuts", app),
             local_only_icon_state,
         );
-        let description = self.render_description(view.bindings.as_ref(), appearance);
+        let description = self.render_description(view.bindings.as_ref(), appearance, app);
 
         Flex::column()
             .with_child(subheader)
             .with_child(description)
             .with_child(render_columns(
                 Container::new(render_text(
-                    "Command",
+                    settings_text("Command", app),
                     Some(UiComponentStyles {
                         font_size: Some(appearance.ui_font_size() + FONT_DELTA),
                         ..Default::default()
@@ -1145,7 +1176,9 @@ impl SettingsWidget for KeybindingsWidget {
                     left: 0.,
                 }),
             ))
-            .with_child(Shrinkable::new(1., self.render_binding_list(view, appearance)).finish())
+            .with_child(
+                Shrinkable::new(1., self.render_binding_list(view, appearance, app)).finish(),
+            )
             .finish()
     }
 }

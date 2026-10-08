@@ -23,7 +23,7 @@ use super::{
     flags,
 };
 use crate::appearance::Appearance;
-use crate::settings::{AppEditorSettings, CodeEditorLineNumberMode, CodeSettings};
+use crate::settings::{AppEditorSettings, CodeEditorLineNumberMode, CodeSettings, settings_text};
 use crate::terminal::general_settings::GeneralSettings;
 use crate::view_components::{Dropdown, DropdownItem};
 use crate::workspace::tab_settings::TabSettings;
@@ -118,7 +118,7 @@ impl EditorAndCodeReviewPageView {
                     .into_iter()
                     .map(|val| {
                         DropdownItem::new(
-                            val.dropdown_item_label(),
+                            settings_text(val.dropdown_item_label(), ctx),
                             EditorAndCodeReviewPageAction::SetCodeEditorLineNumberMode(val),
                         )
                     })
@@ -373,7 +373,7 @@ impl SettingsWidget for AutoOpenCodeReviewPaneCodeWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "oz auto open code review pane panel agent mode change first time accepted diff view conversation"
+        "oz auto open code review pane panel agent mode change first time accepted diff view conversation 自动打开代码审查面板 首个被接受的差异 对话 智能体"
     }
 
     fn render(
@@ -384,7 +384,7 @@ impl SettingsWidget for AutoOpenCodeReviewPaneCodeWidget {
     ) -> Box<dyn Element> {
         let general_settings = GeneralSettings::as_ref(app);
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Auto open code review panel".into(),
+            settings_text("Auto open code review panel", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -400,7 +400,13 @@ impl SettingsWidget for AutoOpenCodeReviewPaneCodeWidget {
                     );
                 })
                 .finish(),
-            Some("When this setting is on, the code review panel will open on the first accepted diff of a conversation".into()),
+            Some(
+                settings_text(
+                    "When this setting is on, the code review panel will open on the first accepted diff of a conversation",
+                    app,
+                )
+                .into(),
+            ),
         )
     }
 }
@@ -414,7 +420,7 @@ impl SettingsWidget for CodeReviewPanelToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "code review panel right side diff git"
+        "code review panel right side diff git 显示代码审查按钮 右上角 切换代码审查面板 差异"
     }
 
     fn render(
@@ -426,7 +432,7 @@ impl SettingsWidget for CodeReviewPanelToggleWidget {
         let tab_settings = TabSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Show code review button".into(),
+            settings_text("Show code review button", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -441,8 +447,11 @@ impl SettingsWidget for CodeReviewPanelToggleWidget {
                 })
                 .finish(),
             Some(
-                "Show a button in the top right of the window to toggle the code review panel."
-                    .into(),
+                settings_text(
+                    "Show a button in the top right of the window to toggle the code review panel.",
+                    app,
+                )
+                .into(),
             ),
         )
     }
@@ -457,7 +466,7 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "code review diff stats lines added removed counts"
+        "code review diff stats lines added removed counts 在代码审查按钮上显示差异统计 新增行 删除行 数量"
     }
 
     fn render(
@@ -469,7 +478,7 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
         let tab_settings = TabSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Show diff stats on code review button".into(),
+            settings_text("Show diff stats on code review button", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -485,7 +494,13 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
                     );
                 })
                 .finish(),
-            Some("Show lines added and removed counts on the code review button.".into()),
+            Some(
+                settings_text(
+                    "Show lines added and removed counts on the code review button.",
+                    app,
+                )
+                .into(),
+            ),
         )
     }
 }
@@ -499,7 +514,7 @@ impl SettingsWidget for ProjectExplorerToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "project explorer file tree left panel tools"
+        "project explorer file tree left panel tools 项目浏览器 文件树 左侧工具栏 IDE 风格"
     }
 
     fn render(
@@ -511,7 +526,7 @@ impl SettingsWidget for ProjectExplorerToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Project explorer".into(),
+            settings_text("Project explorer", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -526,8 +541,11 @@ impl SettingsWidget for ProjectExplorerToggleWidget {
                 })
                 .finish(),
             Some(
-                "Adds an IDE-style project explorer / file tree to the left side tools panel."
-                    .into(),
+                settings_text(
+                    "Adds an IDE-style project explorer / file tree to the left side tools panel.",
+                    app,
+                )
+                .into(),
             ),
         )
     }
@@ -542,7 +560,7 @@ impl SettingsWidget for GlobalSearchToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "global search file search left panel tools"
+        "global search file search left panel tools 全局文件搜索 文件搜索 左侧工具栏"
     }
 
     fn render(
@@ -554,7 +572,7 @@ impl SettingsWidget for GlobalSearchToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Global file search".into(),
+            settings_text("Global file search", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -568,7 +586,9 @@ impl SettingsWidget for GlobalSearchToggleWidget {
                     ctx.dispatch_typed_action(EditorAndCodeReviewPageAction::ToggleGlobalSearch);
                 })
                 .finish(),
-            Some("Adds global file search to the left side tools panel.".into()),
+            Some(
+                settings_text("Adds global file search to the left side tools panel.", app).into(),
+            ),
         )
     }
 }
@@ -582,7 +602,7 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "show hidden files dotfiles project explorer file tree"
+        "show hidden files dotfiles project explorer file tree 在项目浏览器中显示隐藏文件 隐藏文件 点文件 文件树"
     }
 
     fn render(
@@ -594,7 +614,7 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Show hidden files in project explorer".into(),
+            settings_text("Show hidden files in project explorer", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -609,7 +629,11 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
                 })
                 .finish(),
             Some(
-                "Show dotfiles and hidden files (starting with .) in the project explorer.".into(),
+                settings_text(
+                    "Show dotfiles and hidden files (starting with .) in the project explorer.",
+                    app,
+                )
+                .into(),
             ),
         )
     }
@@ -624,7 +648,7 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "format on save lsp language server formatting reformat editor"
+        "format on save lsp language server formatting reformat editor 保存时格式化 语言服务器 格式化 保存"
     }
 
     fn render(
@@ -636,7 +660,11 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Format on save (requires an active language server)".into(),
+            settings_text(
+                "Format on save (requires an active language server)",
+                app,
+            )
+            .into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -651,8 +679,11 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
                 })
                 .finish(),
             Some(
-                "Only applies when a language server is active for the file. Automatically formats the file with the language server on save; other LSP features (hover, go-to-definition, references, diagnostics) are unaffected."
-                    .into(),
+                settings_text(
+                    "Only applies when a language server is active for the file. Automatically formats the file with the language server on save; other LSP features (hover, go-to-definition, references, diagnostics) are unaffected.",
+                    app,
+                )
+                .into(),
             ),
         )
     }
@@ -667,7 +698,7 @@ impl SettingsWidget for AutoSaveToggleWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "auto save autosave automatically save editor files on type focus"
+        "auto save autosave automatically save editor files on type focus 自动保存 自动保存更改 文本编辑器 失去焦点"
     }
 
     fn render(
@@ -679,7 +710,7 @@ impl SettingsWidget for AutoSaveToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<EditorAndCodeReviewPageAction>(
-            "Auto save".into(),
+            settings_text("Auto save", app).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -694,8 +725,11 @@ impl SettingsWidget for AutoSaveToggleWidget {
                 })
                 .finish(),
             Some(
-                "Automatically saves changes in the Warp text editor as you type and when the editor loses focus."
-                    .into(),
+                settings_text(
+                    "Automatically saves changes in the Warp text editor as you type and when the editor loses focus.",
+                    app,
+                )
+                .into(),
             ),
         )
     }
@@ -708,18 +742,18 @@ impl SettingsWidget for CodeEditorLineNumberModeWidget {
     type View = EditorAndCodeReviewPageView;
 
     fn search_terms(&self) -> &str {
-        "line number numbers relative line vim gutter code editor"
+        "line number numbers relative line vim gutter code editor 代码编辑器行号 绝对 相对 行号 相对行号 装订线"
     }
 
     fn render(
         &self,
         view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         render_dropdown_item(
             appearance,
-            "Code editor line numbers:",
+            settings_text("Code editor line numbers:", app),
             None,
             None,
             LocalOnlyIconState::Hidden,

@@ -65,6 +65,18 @@ pub fn initialize_settings_for_tests_with_mode(
 
     AccessibilitySettings::register(app);
     crate::settings::LocaleSettings::register(app);
+    app.update(|ctx| {
+        use settings::Setting;
+        use warpui::SingletonEntity;
+
+        // Pin the interface language so rendered UI strings are deterministic regardless of the
+        // host locale.
+        crate::settings::LocaleSettings::handle(ctx).update(ctx, |locale_settings, ctx| {
+            let _ = locale_settings
+                .interface_language
+                .set_value("en".to_owned(), ctx);
+        });
+    });
     app.update(AISettings::register_and_subscribe_to_events);
     AliasExpansionSettings::register(app);
     CloudAgentSettings::register(app);

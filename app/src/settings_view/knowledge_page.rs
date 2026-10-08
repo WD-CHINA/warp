@@ -23,7 +23,9 @@ use super::settings_page::{
 };
 use super::{SettingsAction, SettingsSection, ToggleSettingActionPair, flags};
 use crate::appearance::Appearance;
-use crate::settings::{AISettings, MemoryEnabled, RuleSuggestionsEnabled, WarpDriveContextEnabled};
+use crate::settings::{
+    AISettings, MemoryEnabled, RuleSuggestionsEnabled, WarpDriveContextEnabled, settings_text,
+};
 use crate::util::bindings;
 
 const PAGE_TITLE: &str = "Knowledge";
@@ -204,7 +206,7 @@ impl SettingsWidget for RulesWidget {
     type View = KnowledgePageView;
 
     fn search_terms(&self) -> &str {
-        "fact memory memories rules conventions"
+        "fact memory memories rules conventions 规则 约定 代码库 工作流 了解更多"
     }
 
     fn render(
@@ -215,7 +217,7 @@ impl SettingsWidget for RulesWidget {
     ) -> Box<dyn Element> {
         let ai_settings = AISettings::as_ref(app);
         let toggle = render_ai_setting_toggle::<MemoryEnabled>(
-            "Rules",
+            settings_text("Rules", app),
             KnowledgePageAction::ToggleRules,
             *ai_settings.memory_enabled,
             ai_settings.is_any_ai_enabled(app),
@@ -225,10 +227,11 @@ impl SettingsWidget for RulesWidget {
         );
 
         let rules_description = vec![
-            FormattedTextFragment::plain_text(
+            FormattedTextFragment::plain_text(settings_text(
                 "Rules help the Warp Agent follow your conventions, whether for codebases or specific workflows. ",
-            ),
-            FormattedTextFragment::hyperlink("Learn more", RULES_DOCS_URL),
+                app,
+            )),
+            FormattedTextFragment::hyperlink(settings_text("Learn more", app), RULES_DOCS_URL),
         ];
         let description = Container::new(
             FormattedTextElement::new(
@@ -266,7 +269,7 @@ impl SettingsWidget for SuggestedRulesWidget {
     type View = KnowledgePageView;
 
     fn search_terms(&self) -> &str {
-        "suggested rules suggest save"
+        "suggested rules suggest save 建议规则 让 AI 根据你的交互建议要保存的规则。"
     }
 
     fn render(
@@ -277,7 +280,7 @@ impl SettingsWidget for SuggestedRulesWidget {
     ) -> Box<dyn Element> {
         let ai_settings = AISettings::as_ref(app);
         let toggle = render_ai_setting_toggle::<RuleSuggestionsEnabled>(
-            "Suggested Rules",
+            settings_text("Suggested Rules", app),
             KnowledgePageAction::ToggleRuleSuggestions,
             *ai_settings.rule_suggestions_enabled_internal,
             ai_settings.is_any_ai_enabled(app),
@@ -287,7 +290,10 @@ impl SettingsWidget for SuggestedRulesWidget {
         );
 
         let description = render_ai_setting_description(
-            "Let AI suggest rules to save based on your interactions.",
+            settings_text(
+                "Let AI suggest rules to save based on your interactions.",
+                app,
+            ),
             ai_settings.is_any_ai_enabled(app),
             app,
         );
@@ -308,7 +314,7 @@ impl SettingsWidget for ManageRulesWidget {
     type View = KnowledgePageView;
 
     fn search_terms(&self) -> &str {
-        "manage rules rule collection"
+        "manage rules rule collection 管理规则 规则集合"
     }
 
     fn render(
@@ -318,7 +324,7 @@ impl SettingsWidget for ManageRulesWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         render_full_pane_width_ai_button(
-            "Manage rules",
+            settings_text("Manage rules", app),
             AISettings::as_ref(app).is_any_ai_enabled(app),
             self.manage_rules_button.clone(),
             KnowledgePageAction::OpenAIFactCollection,
@@ -336,7 +342,7 @@ impl SettingsWidget for WarpDriveContextWidget {
     type View = KnowledgePageView;
 
     fn search_terms(&self) -> &str {
-        "warp drive agent context contents personal team developer workflows environments notebooks environment variables"
+        "warp drive agent context contents personal team developer workflows environments notebooks environment variables Warp Drive 智能体上下文 个人和团队开发者工作流与环境 工作流 Notebook 环境变量"
     }
 
     fn render(
@@ -347,7 +353,7 @@ impl SettingsWidget for WarpDriveContextWidget {
     ) -> Box<dyn Element> {
         let ai_settings = AISettings::as_ref(app);
         let toggle = render_ai_setting_toggle::<WarpDriveContextEnabled>(
-            "Warp Drive as agent context",
+            settings_text("Warp Drive as agent context", app),
             KnowledgePageAction::ToggleWarpDriveContext,
             *ai_settings.warp_drive_context_enabled,
             ai_settings.is_any_ai_enabled(app),
@@ -357,7 +363,10 @@ impl SettingsWidget for WarpDriveContextWidget {
         );
 
         let description = render_ai_setting_description(
-            "The Warp Agent can leverage your Warp Drive Contents to tailor responses to your personal and team developer workflows and environments. This includes any Workflows, Notebooks, and Environment Variables.",
+            settings_text(
+                "The Warp Agent can leverage your Warp Drive Contents to tailor responses to your personal and team developer workflows and environments. This includes any Workflows, Notebooks, and Environment Variables.",
+                app,
+            ),
             ai_settings.is_any_ai_enabled(app),
             app,
         );

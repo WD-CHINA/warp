@@ -72,7 +72,7 @@ use crate::server::telemetry::AutonomySettingToggleSource;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, AgentModeCodingPermissionsType,
     AgentModeCommandExecutionDenylist, AgentModeCommandExecutionPredicate, CodeSettings,
-    CodebaseContextEnabled, UsageDisplayUnit,
+    CodebaseContextEnabled, UsageDisplayUnit, settings_text,
 };
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
 use crate::ui_components::blended_colors;
@@ -251,7 +251,7 @@ impl AgentProfilesPageView {
                 let expanded = host_native_absolute_path(s, &None, &None);
                 Path::new(&expanded).is_dir()
             });
-            input.set_placeholder_text("e.g. ~/code-repos/repo", ctx);
+            input.set_placeholder_text(settings_text("e.g. ~/code-repos/repo", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -274,7 +274,7 @@ impl AgentProfilesPageView {
         let command_execution_allowlist_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|s| Regex::new(s).is_ok());
-            input.set_placeholder_text("e.g. ls .*", ctx);
+            input.set_placeholder_text(settings_text("e.g. ls .*", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -306,7 +306,7 @@ impl AgentProfilesPageView {
         let command_execution_denylist_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|s| Regex::new(s).is_ok());
-            input.set_placeholder_text("e.g. rm .*", ctx);
+            input.set_placeholder_text(settings_text("e.g. rm .*", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -553,15 +553,15 @@ impl AgentProfilesPageView {
             dropdown.set_items(
                 vec![
                     DropdownItem::new(
-                        "Agent decides",
+                        settings_text("Agent decides", ctx),
                         AgentProfilesPageAction::SetApplyCodeDiffs(ActionPermission::AgentDecides),
                     ),
                     DropdownItem::new(
-                        "Always allow",
+                        settings_text("Always allow", ctx),
                         AgentProfilesPageAction::SetApplyCodeDiffs(ActionPermission::AlwaysAllow),
                     ),
                     DropdownItem::new(
-                        "Always ask",
+                        settings_text("Always ask", ctx),
                         AgentProfilesPageAction::SetApplyCodeDiffs(ActionPermission::AlwaysAsk),
                     ),
                 ],
@@ -583,15 +583,15 @@ impl AgentProfilesPageView {
             dropdown.set_items(
                 vec![
                     DropdownItem::new(
-                        "Agent decides",
+                        settings_text("Agent decides", ctx),
                         AgentProfilesPageAction::SetReadFiles(ActionPermission::AgentDecides),
                     ),
                     DropdownItem::new(
-                        "Always allow",
+                        settings_text("Always allow", ctx),
                         AgentProfilesPageAction::SetReadFiles(ActionPermission::AlwaysAllow),
                     ),
                     DropdownItem::new(
-                        "Always ask",
+                        settings_text("Always ask", ctx),
                         AgentProfilesPageAction::SetReadFiles(ActionPermission::AlwaysAsk),
                     ),
                 ],
@@ -613,15 +613,15 @@ impl AgentProfilesPageView {
             dropdown.set_items(
                 vec![
                     DropdownItem::new(
-                        "Agent decides",
+                        settings_text("Agent decides", ctx),
                         AgentProfilesPageAction::SetExecuteCommands(ActionPermission::AgentDecides),
                     ),
                     DropdownItem::new(
-                        "Always allow",
+                        settings_text("Always allow", ctx),
                         AgentProfilesPageAction::SetExecuteCommands(ActionPermission::AlwaysAllow),
                     ),
                     DropdownItem::new(
-                        "Always ask",
+                        settings_text("Always ask", ctx),
                         AgentProfilesPageAction::SetExecuteCommands(ActionPermission::AlwaysAsk),
                     ),
                 ],
@@ -643,15 +643,15 @@ impl AgentProfilesPageView {
             dropdown.set_items(
                 vec![
                     DropdownItem::new(
-                        "Always allow",
+                        settings_text("Always allow", ctx),
                         AgentProfilesPageAction::SetWriteToPty(WriteToPtyPermission::AlwaysAllow),
                     ),
                     DropdownItem::new(
-                        "Always ask",
+                        settings_text("Always ask", ctx),
                         AgentProfilesPageAction::SetWriteToPty(WriteToPtyPermission::AlwaysAsk),
                     ),
                     DropdownItem::new(
-                        "Ask on first write",
+                        settings_text("Ask on first write", ctx),
                         AgentProfilesPageAction::SetWriteToPty(
                             WriteToPtyPermission::AskOnFirstWrite,
                         ),
@@ -675,15 +675,15 @@ impl AgentProfilesPageView {
             dropdown.set_items(
                 vec![
                     DropdownItem::new(
-                        "Agent decides",
+                        settings_text("Agent decides", ctx),
                         AgentProfilesPageAction::SetMCPPermissions(ActionPermission::AgentDecides),
                     ),
                     DropdownItem::new(
-                        "Always allow",
+                        settings_text("Always allow", ctx),
                         AgentProfilesPageAction::SetMCPPermissions(ActionPermission::AlwaysAllow),
                     ),
                     DropdownItem::new(
-                        "Always ask",
+                        settings_text("Always ask", ctx),
                         AgentProfilesPageAction::SetMCPPermissions(ActionPermission::AlwaysAsk),
                     ),
                 ],
@@ -702,7 +702,7 @@ impl AgentProfilesPageView {
             let mut dropdown = FilterableDropdown::new(ctx);
             dropdown.set_top_bar_max_width(AI_SETTINGS_DROPDOWN_WIDTH);
             dropdown.set_menu_width(AI_SETTINGS_DROPDOWN_WIDTH, ctx);
-            dropdown.set_menu_header_to_static("Select MCP servers");
+            dropdown.set_menu_header_to_static(settings_text("Select MCP servers", ctx));
             dropdown
         });
         Self::refresh_mcp_allowlist_dropdown(&mcp_allowlist_dropdown, ctx);
@@ -716,7 +716,7 @@ impl AgentProfilesPageView {
             let mut dropdown = FilterableDropdown::new(ctx);
             dropdown.set_top_bar_max_width(AI_SETTINGS_DROPDOWN_WIDTH);
             dropdown.set_menu_width(AI_SETTINGS_DROPDOWN_WIDTH, ctx);
-            dropdown.set_menu_header_to_static("Select MCP servers");
+            dropdown.set_menu_header_to_static(settings_text("Select MCP servers", ctx));
             dropdown
         });
         Self::refresh_mcp_denylist_dropdown(&mcp_denylist_dropdown, ctx);
@@ -757,7 +757,7 @@ impl AgentProfilesPageView {
                 let expanded = host_native_absolute_path(s, &None, &None);
                 Path::new(&expanded).is_dir()
             });
-            input.set_placeholder_text("e.g. ~/code-repos/repo", ctx);
+            input.set_placeholder_text(settings_text("e.g. ~/code-repos/repo", ctx), ctx);
             input
         });
 
@@ -791,7 +791,7 @@ impl AgentProfilesPageView {
         let command_denylist_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|s| Regex::new(s).is_ok());
-            input.set_placeholder_text("e.g. rm .*", ctx);
+            input.set_placeholder_text(settings_text("e.g. rm .*", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -829,7 +829,7 @@ impl AgentProfilesPageView {
         let command_allowlist_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|s| Regex::new(s).is_ok());
-            input.set_placeholder_text("e.g. ls .*", ctx);
+            input.set_placeholder_text(settings_text("e.g. ls .*", ctx), ctx);
             input
         });
         update_editor_interaction_state(
@@ -873,13 +873,16 @@ impl AgentProfilesPageView {
 
         let profile_views = Self::create_profile_views(ctx);
 
-        let add_profile_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Add Profile", SecondaryTheme)
-                .with_icon(Icon::Plus)
-                .with_size(ButtonSize::Small)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(AgentProfilesPageAction::CreateProfile);
-                })
+        let add_profile_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(
+                settings_text("Add Profile", ctx).to_string(),
+                SecondaryTheme,
+            )
+            .with_icon(Icon::Plus)
+            .with_size(ButtonSize::Small)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(AgentProfilesPageAction::CreateProfile);
+            })
         });
 
         add_profile_button.update(ctx, |button, ctx| {
@@ -1151,11 +1154,11 @@ impl AgentProfilesPageView {
             menu.set_items(
                 vec![
                     DropdownItem::new(
-                        "Read only",
+                        settings_text("Read only", ctx),
                         AgentProfilesPageAction::SetAutonomyReadonlyCommandsSetting,
                     ),
                     DropdownItem::new(
-                        "Supervised",
+                        settings_text("Supervised", ctx),
                         AgentProfilesPageAction::SetAutonomySupervisedSetting,
                     ),
                 ],
@@ -1347,10 +1350,14 @@ impl AgentProfilesPageView {
                 AgentModeCodingPermissionsType::iter()
                     .map(|t| {
                         let display = match t {
-                            AgentModeCodingPermissionsType::AlwaysAskBeforeReading => "Always ask",
-                            AgentModeCodingPermissionsType::AlwaysAllowReading => "Always allow",
+                            AgentModeCodingPermissionsType::AlwaysAskBeforeReading => {
+                                settings_text("Always ask", ctx)
+                            }
+                            AgentModeCodingPermissionsType::AlwaysAllowReading => {
+                                settings_text("Always allow", ctx)
+                            }
                             AgentModeCodingPermissionsType::AllowReadingSpecificFiles => {
-                                "Allow in specific directories"
+                                settings_text("Allow in specific directories", ctx)
                             }
                         };
                         DropdownItem::new(display, AgentProfilesPageAction::SetCodingPermission(t))
@@ -1883,14 +1890,14 @@ fn render_ai_list(
     app: &AppContext,
 ) -> Box<dyn Element> {
     let setting_header = render_ai_setting_label::<AgentModeCommandExecutionDenylist>(
-        header.to_string(),
+        settings_text(header, app).to_string(),
         ai_settings.is_any_ai_enabled(app),
         &view.local_only_icon_tooltip_states,
         app,
     );
 
     let description = render_ai_setting_description(
-        description.to_string(),
+        settings_text(description, app).to_string(),
         ai_settings.is_any_ai_enabled(app),
         app,
     );
@@ -1958,6 +1965,7 @@ impl UsageWidget {
             requests_highlight_index: Default::default(),
         }
     }
+    #[allow(clippy::too_many_arguments)]
     fn render_request_usage_count(
         &self,
         used: usize,
@@ -1966,6 +1974,7 @@ impl UsageWidget {
         allowance_cents: Option<AllowanceCents>,
         workspace_is_delinquent_due_to_payment_issue: bool,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn warpui::Element> {
         let mut row = Flex::row();
         if used >= limit || workspace_is_delinquent_due_to_payment_issue {
@@ -1982,9 +1991,13 @@ impl UsageWidget {
         }
 
         let request_count_label = if workspace_is_delinquent_due_to_payment_issue {
-            "Restricted due to billing issue".to_string()
+            settings_text("Restricted due to billing issue", app).to_string()
         } else {
-            format_allowance_count(used, limit, is_unlimited, allowance_cents)
+            settings_text(
+                &format_allowance_count(used, limit, is_unlimited, allowance_cents),
+                app,
+            )
+            .to_string()
         };
 
         row.add_child(
@@ -2030,6 +2043,7 @@ impl UsageWidget {
         allowance_cents: Option<AllowanceCents>,
         workspace_is_delinquent_due_to_payment_issue: bool,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn warpui::Element> {
         let request_usage_details = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::End)
@@ -2040,6 +2054,7 @@ impl UsageWidget {
                 allowance_cents,
                 workspace_is_delinquent_due_to_payment_issue,
                 appearance,
+                app,
             ));
 
         let request_usage_description = FormattedTextElement::from_str(
@@ -2106,7 +2121,7 @@ impl SettingsWidget for UsageWidget {
     type View = AgentProfilesPageView;
 
     fn search_terms(&self) -> &str {
-        "a.i. ai usage limit plan"
+        "a.i. ai usage limit plan 用量 额度 限额 重置 升级 方案"
     }
 
     fn render(
@@ -2132,7 +2147,7 @@ impl SettingsWidget for UsageWidget {
                 .with_child(
                     build_sub_header(
                         appearance,
-                        "Usage",
+                        settings_text("Usage", app),
                         Some(styles::header_font_color(true, app)),
                     )
                     .finish(),
@@ -2140,7 +2155,10 @@ impl SettingsWidget for UsageWidget {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .paragraph(format!("Resets {formatted_next_refresh_time}"))
+                        .paragraph(
+                            settings_text("Resets {date}", app)
+                                .replace("{date}", &formatted_next_refresh_time),
+                        )
                         .with_style(UiComponentStyles {
                             font_color: Some(blended_colors::text_sub(
                                 appearance.theme(),
@@ -2162,15 +2180,26 @@ impl SettingsWidget for UsageWidget {
             ai_request_usage_model.usage_cents_used(),
             ai_request_usage_model.included_usage_cents(),
         );
-        let (header, unit) = if allowance_cents.is_some() {
-            ("Usage", "usage")
+        let refresh_duration = ai_request_usage_model.refresh_duration_to_string();
+        let (header, request_limit_description) = if allowance_cents.is_some() {
+            (
+                settings_text("Usage", app),
+                settings_text(
+                    "This is the {duration} limit of AI usage for your account.",
+                    app,
+                )
+                .replace("{duration}", settings_text(&refresh_duration, app)),
+            )
         } else {
-            ("Credits", "credits")
+            (
+                settings_text("Credits", app),
+                settings_text(
+                    "This is the {duration} limit of AI credits for your account.",
+                    app,
+                )
+                .replace("{duration}", settings_text(&refresh_duration, app)),
+            )
         };
-        let request_limit_description = format!(
-            "This is the {} limit of AI {unit} for your account.",
-            ai_request_usage_model.refresh_duration_to_string()
-        );
 
         let request_usage_row = self.render_ai_usage_limit_row(
             header,
@@ -2181,6 +2210,7 @@ impl SettingsWidget for UsageWidget {
             allowance_cents,
             workspace_is_delinquent_due_to_payment_issue,
             appearance,
+            app,
         );
 
         let auth_state = AuthStateProvider::as_ref(app).get();
@@ -2193,28 +2223,43 @@ impl SettingsWidget for UsageWidget {
                 let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
                 if has_admin_permissions {
                     vec![
-                        FormattedTextFragment::hyperlink("Upgrade", upgrade_url),
-                        FormattedTextFragment::plain_text(" to get more AI usage."),
+                        FormattedTextFragment::hyperlink(
+                            settings_text("Upgrade", app),
+                            upgrade_url,
+                        ),
+                        FormattedTextFragment::plain_text(settings_text(
+                            " to get more AI usage.",
+                            app,
+                        )),
                     ]
                 } else {
                     // The /upgrade page says to contact their administrator.
                     vec![
-                        FormattedTextFragment::hyperlink("Compare plans", upgrade_url),
-                        FormattedTextFragment::plain_text(" for more AI usage."),
+                        FormattedTextFragment::hyperlink(
+                            settings_text("Compare plans", app),
+                            upgrade_url,
+                        ),
+                        FormattedTextFragment::plain_text(settings_text(
+                            " for more AI usage.",
+                            app,
+                        )),
                     ]
                 }
             } else {
                 vec![
-                    FormattedTextFragment::hyperlink("Contact support", "mailto:support@warp.dev"),
-                    FormattedTextFragment::plain_text(" for more AI usage."),
+                    FormattedTextFragment::hyperlink(
+                        settings_text("Contact support", app),
+                        "mailto:support@warp.dev",
+                    ),
+                    FormattedTextFragment::plain_text(settings_text(" for more AI usage.", app)),
                 ]
             }
         } else {
             let user_id = auth_state.user_id().unwrap_or_default();
             let upgrade_url = UserWorkspaces::upgrade_link(user_id);
             vec![
-                FormattedTextFragment::hyperlink("Upgrade", upgrade_url),
-                FormattedTextFragment::plain_text(" to get more AI usage."),
+                FormattedTextFragment::hyperlink(settings_text("Upgrade", app), upgrade_url),
+                FormattedTextFragment::plain_text(settings_text(" to get more AI usage.", app)),
             ]
         };
 
@@ -2266,9 +2311,9 @@ impl SettingsWidget for AgentsWidget {
 
     fn search_terms(&self) -> &str {
         if should_show_mcp_servers() {
-            "ai a.i. agent autonomy profiles allowlist denylist autoexecute permissions models llms planning mcp server"
+            "ai a.i. agent autonomy profiles allowlist denylist autoexecute permissions models llms planning mcp server 智能体 自主性 配置文件 允许列表 拒绝列表 自动执行 权限 模型 规划 MCP 服务器"
         } else {
-            "ai a.i. agent autonomy profiles allowlist denylist autoexecute permissions models llms planning"
+            "ai a.i. agent autonomy profiles allowlist denylist autoexecute permissions models llms planning 智能体 自主性 配置文件 允许列表 拒绝列表 自动执行 权限 模型 规划"
         }
     }
 
@@ -2295,14 +2340,17 @@ impl SettingsWidget for AgentsWidget {
             agents_header.add_child(
                 build_sub_header(
                     appearance,
-                    "Agents",
+                    settings_text("Agents", app),
                     Some(styles::header_font_color(is_any_ai_enabled, app)),
                 )
                 .with_padding_bottom(HEADER_PADDING)
                 .finish(),
             );
             agents_header.add_child(render_ai_setting_description(
-                "Set the boundaries for how your Agent operates. Choose what it can access, how much autonomy it has, and when it must ask for your approval. You can also fine-tune behavior around natural language input, codebase awareness, and more.",
+                settings_text(
+                    "Set the boundaries for how your Agent operates. Choose what it can access, how much autonomy it has, and when it must ask for your approval. You can also fine-tune behavior around natural language input, codebase awareness, and more.",
+                    app,
+                ),
                 ai_settings.is_any_ai_enabled(app),
                 app,
             ));
@@ -2341,7 +2389,7 @@ impl AgentsWidget {
             .with_child(
                 build_sub_header(
                     appearance,
-                    "Profiles",
+                    settings_text("Profiles", app),
                     Some(styles::header_font_color(is_any_ai_enabled, app)),
                 )
                 .finish(),
@@ -2349,7 +2397,10 @@ impl AgentsWidget {
             .with_child(
                 Container::new(
                     render_ai_setting_description(
-                        "Profiles let you define how your Agent operates — from the actions it can take and when it needs approval, to the models it uses for tasks like coding and planning. You can also scope them to individual projects.",
+                        settings_text(
+                            "Profiles let you define how your Agent operates — from the actions it can take and when it needs approval, to the models it uses for tasks like coding and planning. You can also scope them to individual projects.",
+                            app,
+                        ),
                         is_any_ai_enabled,
                         app,
                     )
@@ -2399,7 +2450,7 @@ impl AgentsWidget {
         let is_any_ai_enabled = ai_settings.is_any_ai_enabled(app);
         let model_subheader = Container::new(render_custom_size_header(
             appearance,
-            "Models",
+            settings_text("Models", app),
             14.0,
             Some(styles::header_font_color(is_any_ai_enabled, app)),
         ))
@@ -2443,7 +2494,7 @@ impl AgentsWidget {
         let max = cw.max;
 
         let label = Container::new(render_body_item_label::<AgentProfilesPageAction>(
-            "Context window (tokens)".to_string(),
+            settings_text("Context window (tokens)", app).to_string(),
             None,
             None,
             LocalOnlyIconState::Hidden,
@@ -2563,7 +2614,7 @@ impl AgentsWidget {
         let scope = view.team_context(app);
         let permissions_subheader = Container::new(render_custom_size_header(
             appearance,
-            "Permissions",
+            settings_text("Permissions", app),
             14.0,
             Some(styles::header_font_color(is_any_ai_enabled, app)),
         ))
@@ -2573,7 +2624,7 @@ impl AgentsWidget {
         let code_diff_setting =
             BlocklistAIPermissions::as_ref(app).get_apply_code_diffs_setting(None, &scope, app);
         let code_diffs = self.render_execution_profile_dropdown(
-            "Apply code diffs",
+            settings_text("Apply code diffs", app),
             Icon::Code2,
             code_diff_setting.description(),
             &view.apply_code_diffs_dropdown_menu,
@@ -2586,7 +2637,7 @@ impl AgentsWidget {
             BlocklistAIPermissions::as_ref(app).get_read_files_setting(None, &scope, app);
         let mut read_files_flex = Flex::column().with_main_axis_size(MainAxisSize::Min);
         read_files_flex.add_child(self.render_execution_profile_dropdown(
-            "Read files",
+            settings_text("Read files", app),
             Icon::Notebook,
             read_files_setting.description(),
             &view.read_files_dropdown_menu,
@@ -2616,7 +2667,7 @@ impl AgentsWidget {
             BlocklistAIPermissions::as_ref(app).get_execute_commands_setting(None, &scope, app);
         let mut execute_commands_flex = Flex::column().with_main_axis_size(MainAxisSize::Min);
         execute_commands_flex.add_child(self.render_execution_profile_dropdown(
-            "Execute commands",
+            settings_text("Execute commands", app),
             Icon::Terminal,
             execute_commands_setting.description(),
             &view.execute_commands_dropdown_menu,
@@ -2666,7 +2717,10 @@ impl AgentsWidget {
         {
             widget_children.push(
                 Container::new(render_settings_info_banner(
-                    "Some of your permissions are managed by your workspace.",
+                    settings_text(
+                        "Some of your permissions are managed by your workspace.",
+                        app,
+                    ),
                     None,
                     appearance,
                 ))
@@ -2680,7 +2734,7 @@ impl AgentsWidget {
         let write_to_pty_setting =
             BlocklistAIPermissions::as_ref(app).get_write_to_pty_setting(None, &scope, app);
         let write_to_pty = self.render_execution_profile_dropdown(
-            "Interact with running commands",
+            settings_text("Interact with running commands", app),
             Icon::Workflow,
             write_to_pty_setting.description(),
             &view.write_to_pty_autonomy_dropdown_menu,
@@ -2722,7 +2776,7 @@ impl AgentsWidget {
         app: &warpui::AppContext,
     ) -> Box<dyn Element> {
         let header = Container::new(render_body_item_label_with_icon::<AgentProfilesPageAction>(
-            header_text.into(),
+            settings_text(header_text, app).into(),
             header_icon,
             Some(styles::header_font_color(
                 ai_settings.is_any_ai_enabled(app),
@@ -2753,7 +2807,7 @@ impl AgentsWidget {
         .with_margin_right(4.)
         .finish();
         let text = Text::new(
-            permission_description,
+            settings_text(permission_description, app),
             appearance.ui_font_family(),
             appearance.ui_font_size(),
         )
@@ -2937,7 +2991,7 @@ impl AgentsWidget {
                             .finish(),
                         appearance
                             .ui_builder()
-                            .span("Show model picker in prompt".to_string())
+                            .span(settings_text("Show model picker in prompt", app).to_string())
                             .with_style(UiComponentStyles {
                                 font_color: Some(
                                     theme.sub_text_color(theme.surface_2()).into_solid(),
@@ -2957,10 +3011,11 @@ impl AgentsWidget {
 
         render_dropdown_item(
             appearance,
-            "Base model",
-            Some(
+            settings_text("Base model", app),
+            Some(settings_text(
                 "This model serves as the primary engine behind the Warp Agent. It powers most interactions and invokes other models for tasks like planning or code generation when necessary. Warp may automatically switch to alternate models based on model availability or for auxiliary tasks such as conversation summarization.",
-            ),
+                app,
+            )),
             Some(show_in_prompt_checkbox),
             LocalOnlyIconState::Hidden,
             (!ai_settings.is_any_ai_enabled(app))
@@ -2979,7 +3034,7 @@ impl AgentsWidget {
     ) -> Box<dyn Element> {
         let code_settings = CodeSettings::as_ref(app);
         let toggle = render_ai_setting_toggle::<CodebaseContextEnabled>(
-            "Codebase Context",
+            settings_text("Codebase Context", app),
             AgentProfilesPageAction::ToggleCodebaseContext,
             *code_settings.codebase_context_enabled,
             ai_settings.is_any_ai_enabled(app),
@@ -2989,11 +3044,12 @@ impl AgentsWidget {
         );
 
         let codebase_context_description = vec![
-            FormattedTextFragment::plain_text(
+            FormattedTextFragment::plain_text(settings_text(
                 "Allow the Warp Agent to generate an outline of your codebase that can be used for context. No code is ever stored on our servers. ",
-            ),
+                app,
+            )),
             FormattedTextFragment::hyperlink(
-                "Learn more",
+                settings_text("Learn more", app),
                 "https://docs.warp.dev/agents/capabilities/codebase-context",
             ),
         ];
@@ -3046,7 +3102,7 @@ impl AgentsWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         let header = Container::new(render_body_item_label_with_icon::<AgentProfilesPageAction>(
-            "Call MCP servers".into(),
+            settings_text("Call MCP servers", app).into(),
             Icon::Dataflow,
             Some(styles::header_font_color(
                 ai_settings.is_any_ai_enabled(app),
@@ -3062,16 +3118,17 @@ impl AgentsWidget {
 
         let subtext = {
             let subtext_fragments = vec![
-                FormattedTextFragment::plain_text(
+                FormattedTextFragment::plain_text(settings_text(
                     "You haven't added any MCP servers yet. Once you do, you'll be able to control how much autonomy the Warp Agent has when interacting with them. ",
-                ),
+                    app,
+                )),
                 FormattedTextFragment::hyperlink_action(
-                    "Add a server",
+                    settings_text("Add a server", app),
                     AgentProfilesPageAction::OpenMCPServerCollection,
                 ),
-                FormattedTextFragment::plain_text(" or "),
+                FormattedTextFragment::plain_text(settings_text(" or ", app)),
                 FormattedTextFragment::hyperlink(
-                    "learn more about MCPs.",
+                    settings_text("learn more about MCPs.", app),
                     "https://docs.warp.dev/agents/capabilities/mcp",
                 ),
             ];
@@ -3130,7 +3187,7 @@ impl AgentsWidget {
             BlocklistAIPermissions::as_ref(app).get_mcp_permissions_setting(app, None);
 
         let permission_setting = self.render_execution_profile_dropdown(
-            "Call MCP servers",
+            settings_text("Call MCP servers", app),
             Icon::Dataflow,
             current_mcp_setting.description(),
             &view.mcp_permissions_dropdown_menu,
@@ -3198,8 +3255,8 @@ impl AgentsWidget {
                     Shrinkable::new(
                         1.0,
                         Container::new(render_dropdown_item_label(
-                            title.to_string(),
-                            Some(description.to_string()),
+                            settings_text(title, app).to_string(),
+                            Some(settings_text(description, app).to_string()),
                             LocalOnlyIconState::Hidden,
                             (!ai_settings.is_any_ai_enabled(app))
                                 .then(|| appearance.theme().disabled_ui_text_color()),

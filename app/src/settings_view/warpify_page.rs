@@ -30,7 +30,7 @@ use super::{SettingsAction, SettingsSection, ToggleSettingActionPair, flags};
 use crate::appearance::Appearance;
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
-use crate::settings::{ReuseExistingSshControlMaster, SshSettings};
+use crate::settings::{ReuseExistingSshControlMaster, SshSettings, settings_text};
 use crate::terminal::warpify::settings::{
     EnableSshWarpification, SshExtensionInstallMode, SshExtensionInstallModeSetting,
     WarpifySettings, WarpifySettingsChangedEvent,
@@ -111,7 +111,7 @@ impl WarpifyPageView {
         let add_added_commands_editor = ctx.add_typed_action_view(|ctx| {
             let mut input =
                 SubmittableTextInput::new(ctx).validate_on_edit(|regex| Regex::new(regex).is_ok());
-            input.set_placeholder_text("command (supports regex)", ctx);
+            input.set_placeholder_text(settings_text("command (supports regex)", ctx), ctx);
             input
         });
 
@@ -122,7 +122,7 @@ impl WarpifyPageView {
 
         let add_denylisted_commands_editor = ctx.add_typed_action_view(|ctx| {
             let mut input = SubmittableTextInput::new(ctx);
-            input.set_placeholder_text("command (supports regex)", ctx);
+            input.set_placeholder_text(settings_text("command (supports regex)", ctx), ctx);
             input
         });
 
@@ -282,7 +282,7 @@ impl WarpifyPageView {
         let items: Vec<DropdownItem<WarpifyPageAction>> = SshExtensionInstallMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    settings_text(mode.display_name(), ctx),
                     WarpifyPageAction::SetSshExtensionInstallMode(mode),
                 )
             })
@@ -487,14 +487,15 @@ struct TitleWidget {
 }
 
 impl TitleWidget {
-    fn render_top_of_page(&self, appearance: &Appearance, _app: &AppContext) -> Box<dyn Element> {
+    fn render_top_of_page(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let warpify_description = vec![
-            FormattedTextFragment::plain_text(
+            FormattedTextFragment::plain_text(settings_text(
                 "Configure whether Warp attempts to “Warpify” (add support for blocks, \
                     input modes, etc) certain shells. ",
-            ),
+                app,
+            )),
             FormattedTextFragment::hyperlink(
-                "Learn more",
+                settings_text("Learn more", app),
                 "https://docs.warp.dev/terminal/warpify/subshells",
             ),
         ];
@@ -514,7 +515,11 @@ impl TitleWidget {
         .finish();
 
         Flex::column()
-            .with_child(render_page_title("Warpify", HEADER_FONT_SIZE, appearance))
+            .with_child(render_page_title(
+                settings_text("Warpify", app),
+                HEADER_FONT_SIZE,
+                appearance,
+            ))
             .with_child(warpify_description)
             .finish()
     }
@@ -524,7 +529,7 @@ impl SettingsWidget for TitleWidget {
     type View = WarpifyPageView;
 
     fn search_terms(&self) -> &str {
-        "ssh subshell warpify session"
+        "ssh subshell warpify session 配置 Warp 是否尝试对某些 shell 进行“Warpify”（添加区块、输入模式等支持）。 了解更多"
     }
 
     fn render(
@@ -555,7 +560,7 @@ impl SubshellsWidget {
 
         column.add_child(
             view.build_input_list(
-                "Added commands",
+                settings_text("Added commands", app),
                 &warpify_settings.added_subshell_commands,
                 &view.remove_added_command_button_states,
                 WarpifyPageAction::RemoveAddedCommand,
@@ -567,7 +572,7 @@ impl SubshellsWidget {
 
         column.add_child(
             view.build_input_list(
-                "Denylisted commands",
+                settings_text("Denylisted commands", app),
                 &warpify_settings.subshell_command_denylist,
                 &view.remove_denylisted_command_button_states,
                 WarpifyPageAction::RemoveDenylistedCommand,
@@ -586,7 +591,7 @@ impl SettingsWidget for SubshellsWidget {
     type View = WarpifyPageView;
 
     fn search_terms(&self) -> &str {
-        "warpify subshell"
+        "warpify subshell 子 Shell 支持的子 shell：bash、zsh 和 fish。 已添加的命令 已拒绝的命令"
     }
 
     fn render(
@@ -612,7 +617,7 @@ impl SettingsWidget for SSHWidget {
     type View = WarpifyPageView;
 
     fn search_terms(&self) -> &str {
-        "warpify ssh"
+        "warpify ssh Warpify 你的交互式 SSH 会话。 Warpify SSH 会话 安装 SSH 扩展 控制远程主机未安装 Warp SSH 扩展时的安装行为。 复用现有 SSH ControlMaster 连接到已为目标主机配置好的现有 SSH ControlMaster，而不是创建由 Warp 管理的连接。新标签页中生效。 始终询问 始终安装 从不安装"
     }
 
     fn render(
@@ -636,7 +641,7 @@ impl SettingsWidget for SSHWidget {
             &WarpifySettings::as_ref(app).enable_ssh_warpification,
             move || {
                 render_body_item::<WarpifyPageAction>(
-                    "Warpify SSH Sessions".into(),
+                    settings_text("Warpify SSH Sessions", app).to_string(),
                     None,
                     LocalOnlyIconState::for_setting(
                         EnableSshWarpification::storage_key(),
@@ -671,8 +676,8 @@ impl SettingsWidget for SSHWidget {
                 move || {
                     Container::new(render_dropdown_item(
                         appearance,
-                        "Install SSH extension",
-                        Some(SSH_EXTENSION_INSTALL_MODE_DESCRIPTION),
+                        settings_text("Install SSH extension", app),
+                        Some(settings_text(SSH_EXTENSION_INSTALL_MODE_DESCRIPTION, app)),
                         None,
                         LocalOnlyIconState::for_setting(
                             SshExtensionInstallModeSetting::storage_key(),
@@ -698,7 +703,7 @@ impl SettingsWidget for SSHWidget {
             move || {
                 let mut column = Flex::column();
                 column.add_child(render_body_item::<WarpifyPageAction>(
-                    "Reuse existing SSH ControlMaster".into(),
+                    settings_text("Reuse existing SSH ControlMaster", app).to_string(),
                     None,
                     LocalOnlyIconState::for_setting(
                         ReuseExistingSshControlMaster::storage_key(),
@@ -726,7 +731,9 @@ impl SettingsWidget for SSHWidget {
                 ));
                 column.add_child(
                     ui_builder
-                        .paragraph(SSH_REUSE_CONTROL_MASTER_DESCRIPTION.to_owned())
+                        .paragraph(
+                            settings_text(SSH_REUSE_CONTROL_MASTER_DESCRIPTION, app).to_owned(),
+                        )
                         .with_style(UiComponentStyles {
                             font_color: Some(description_text_color.into_solid()),
                             margin: Some(

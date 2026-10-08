@@ -31,6 +31,7 @@ use crate::auth::AuthStateProvider;
 use crate::editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions};
 use crate::server::server_api::referral::{ReferralInfo, ReferralsClient};
 use crate::server::telemetry::TelemetryEvent;
+use crate::settings::settings_text;
 use crate::ui_components::blended_colors;
 use crate::view_components::ToastFlavor;
 use crate::{safe_info, send_telemetry_from_ctx};
@@ -281,7 +282,7 @@ impl ReferralsPageView {
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(referral_info.url.to_string()));
                 ctx.emit(ReferralsPageEvent::ShowToast {
-                    message: LINK_COPIED_TOAST.to_owned(),
+                    message: settings_text(LINK_COPIED_TOAST, ctx).to_owned(),
                     flavor: ToastFlavor::Default,
                 });
             }
@@ -305,7 +306,7 @@ impl ReferralsPageView {
                 }
                 Err(error) => {
                     ctx.emit(ReferralsPageEvent::ShowToast {
-                        message: error.ui_message(),
+                        message: error.ui_message(ctx),
                         flavor: ToastFlavor::Error,
                     });
                     log::warn!("Emails entered are invalid: {error}");
@@ -334,14 +335,14 @@ impl ReferralsPageView {
                     full: ("Successfully sent invites to: {:?}", successful)
                 );
                 ctx.emit(ReferralsPageEvent::ShowToast {
-                    message: EMAIL_SUCCESS_TOAST.to_owned(),
+                    message: settings_text(EMAIL_SUCCESS_TOAST, ctx).to_owned(),
                     flavor: ToastFlavor::Success,
                 });
             }
             Err(err) => {
                 report_error!(err.context("Error sending referral emails"));
                 ctx.emit(ReferralsPageEvent::ShowToast {
-                    message: EMAIL_FAILURE_TOAST.to_owned(),
+                    message: settings_text(EMAIL_FAILURE_TOAST, ctx).to_owned(),
                     flavor: ToastFlavor::Error,
                 });
             }
@@ -454,11 +455,12 @@ enum EmailValidationError {
 
 impl EmailValidationError {
     /// The user-readable error descriptions.
-    fn ui_message(&self) -> String {
+    fn ui_message(&self, ctx: &AppContext) -> String {
         match self {
-            EmailValidationError::Empty => "Please enter an email.".to_owned(),
+            EmailValidationError::Empty => settings_text("Please enter an email.", ctx).to_owned(),
             EmailValidationError::Invalid(invalid_email) => {
-                format!("Please ensure the following email is valid: {invalid_email}")
+                settings_text("Please ensure the following email is valid: {email}", ctx)
+                    .replace("{email}", invalid_email)
             }
         }
     }
@@ -494,9 +496,9 @@ impl ReferralsWidget {
             .is_anonymous_or_logged_out();
 
         let invite_or_signup_section = if is_anonymous {
-            self.render_signup_section(appearance)
+            self.render_signup_section(appearance, app)
         } else {
-            self.render_send_invite_section(view, appearance)
+            self.render_send_invite_section(view, appearance, app)
         };
 
         Flex::column()
@@ -506,7 +508,7 @@ impl ReferralsWidget {
                     .finish(),
             )
             .with_child(
-                Container::new(self.render_rewards_section(is_anonymous, view, appearance))
+                Container::new(self.render_rewards_section(is_anonymous, view, appearance, app))
                     .with_padding_bottom(PAGE_PADDING)
                     .finish(),
             )
@@ -517,11 +519,12 @@ impl ReferralsWidget {
         &self,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let (link_text, button_enabled) = match &view.api_state {
             ApiState::Ready { referral_info, .. } => (referral_info.url.clone(), true),
-            ApiState::Loading => (LOADING_TEXT.into(), false),
-            ApiState::Failed => (LINK_ERROR_TEXT.into(), false),
+            ApiState::Loading => (settings_text(LOADING_TEXT, app).to_string(), false),
+            ApiState::Failed => (settings_text(LINK_ERROR_TEXT, app).to_string(), false),
         };
         let theme = appearance.theme();
 
@@ -557,7 +560,7 @@ impl ReferralsWidget {
                 )
                 .with_child(self.render_button(
                     button_enabled,
-                    LINK_BUTTON_TEXT,
+                    settings_text(LINK_BUTTON_TEXT, app),
                     self.copy_link_mouse_state.clone(),
                     |ctx, _, _| ctx.dispatch_typed_action(ReferralsPageAction::CopyLink),
                     appearance,
@@ -573,17 +576,18 @@ impl ReferralsWidget {
         &self,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let (button_text, button_enabled) = match &view.api_state {
             ApiState::Ready {
                 email_state: SendEmailState::Idle,
                 ..
-            } => (EMAIL_BUTTON_TEXT, true),
+            } => (settings_text(EMAIL_BUTTON_TEXT, app), true),
             ApiState::Ready {
                 email_state: SendEmailState::Sending,
                 ..
-            } => (EMAIL_BUTTON_SENDING_TEXT, false),
-            _ => (EMAIL_BUTTON_TEXT, false),
+            } => (settings_text(EMAIL_BUTTON_SENDING_TEXT, app), false),
+            _ => (settings_text(EMAIL_BUTTON_TEXT, app), false),
         };
 
         Flex::row()
@@ -617,16 +621,17 @@ impl ReferralsWidget {
         &self,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         Flex::column()
-            .with_child(self.render_label("Link", appearance))
-            .with_child(self.render_link_row(view, appearance))
-            .with_child(self.render_label("Email", appearance))
-            .with_child(self.render_email_row(view, appearance))
+            .with_child(self.render_label(settings_text("Link", app), appearance))
+            .with_child(self.render_link_row(view, appearance, app))
+            .with_child(self.render_label(settings_text("Email", app), appearance))
+            .with_child(self.render_email_row(view, appearance, app))
             .finish()
     }
 
-    fn render_signup_section(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_signup_section(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let button_styles = UiComponentStyles {
             font_size: Some(14.),
             font_weight: Some(Weight::Semibold),
@@ -647,7 +652,7 @@ impl ReferralsWidget {
                 self.sign_up_button_mouse_state.clone(),
             )
             .with_style(button_styles)
-            .with_text_label("Sign up".to_owned())
+            .with_text_label(settings_text("Sign up", app).to_owned())
             .build()
             .on_click(move |ctx, _, _| {
                 ctx.dispatch_typed_action(ReferralsPageAction::SignupAnonymousUser);
@@ -659,7 +664,7 @@ impl ReferralsWidget {
                 Container::new(
                     appearance
                         .ui_builder()
-                        .span(ANONYMOUS_USER_HEADER_TEXT)
+                        .span(settings_text(ANONYMOUS_USER_HEADER_TEXT, app))
                         .with_style(UiComponentStyles {
                             font_size: Some(HEADER_FONT_SIZE),
                             ..Default::default()
@@ -724,6 +729,7 @@ impl ReferralsWidget {
         is_anonymous: bool,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let mut rewards_section = Flex::column();
 
@@ -731,7 +737,7 @@ impl ReferralsWidget {
             Container::new(
                 appearance
                     .ui_builder()
-                    .span(REWARD_INTRO)
+                    .span(settings_text(REWARD_INTRO, app))
                     .with_style(UiComponentStyles {
                         font_size: Some(REWARD_INTRO_FONT_SIZE),
                         ..Default::default()
@@ -751,9 +757,10 @@ impl ReferralsWidget {
                     .with_margin_right(METER_RIGHT_MARGIN)
                     .finish(),
             )
-            .with_child(self.render_rewards_list(view, appearance));
+            .with_child(self.render_rewards_list(view, appearance, app));
 
-        if !is_anonymous && let Some(count) = self.render_claimed_referrals_count(view, appearance)
+        if !is_anonymous
+            && let Some(count) = self.render_claimed_referrals_count(view, appearance, app)
         {
             reward_status_row.add_child(
                 Container::new(count)
@@ -770,8 +777,14 @@ impl ReferralsWidget {
                     FormattedTextElement::new(
                         FormattedText::new([FormattedTextLine::Line(vec![
                             FormattedTextFragment::plain_text("*"),
-                            FormattedTextFragment::hyperlink(TERMS_LINK_TEXT, TERMS_URL),
-                            FormattedTextFragment::plain_text(TERMS_CONTACT_TEXT),
+                            FormattedTextFragment::hyperlink(
+                                settings_text(TERMS_LINK_TEXT, app),
+                                TERMS_URL,
+                            ),
+                            FormattedTextFragment::plain_text(settings_text(
+                                TERMS_CONTACT_TEXT,
+                                app,
+                            )),
                         ])]),
                         12.,
                         appearance.ui_font_family(),
@@ -802,11 +815,12 @@ impl ReferralsWidget {
         &self,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         Container::new(
             Flex::column()
                 .with_children(REWARDS.iter().map(|reward| {
-                    Container::new(self.render_reward(reward, view, appearance))
+                    Container::new(self.render_reward(reward, view, appearance, app))
                         .with_margin_bottom(REFERRAL_ICON_BOX_VERTICAL_SPACING)
                         .finish()
                 }))
@@ -820,6 +834,7 @@ impl ReferralsWidget {
         reward: &Reward,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let (icon_color, label_color, label_font_weight): (ColorU, ColorU, Option<Weight>) =
             match view.referral_claimed_count() {
@@ -863,7 +878,7 @@ impl ReferralsWidget {
                 Container::new(
                     appearance
                         .ui_builder()
-                        .span(reward.label.clone())
+                        .span(settings_text(reward.label.as_str(), app).to_string())
                         .with_style(UiComponentStyles {
                             font_color: Some(label_color),
                             font_weight: label_font_weight,
@@ -1043,6 +1058,7 @@ impl ReferralsWidget {
         &self,
         view: &ReferralsPageView,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Option<Box<dyn Element>> {
         let claimed_count = view.referral_claimed_count()?;
 
@@ -1082,7 +1098,10 @@ impl ReferralsWidget {
                     ConstrainedBox::new(
                         appearance
                             .ui_builder()
-                            .wrappable_text(current_referrals_label.to_string(), true)
+                            .wrappable_text(
+                                settings_text(current_referrals_label, app).to_string(),
+                                true,
+                            )
                             .with_style(UiComponentStyles {
                                 font_size: Some(CLAIMED_REFERRALS_LABEL_FONT_SIZE),
                                 font_color: Some(blended_colors::text_sub(
@@ -1107,7 +1126,7 @@ impl SettingsWidget for ReferralsWidget {
     type View = ReferralsPageView;
 
     fn search_terms(&self) -> &str {
-        "referrals invites"
+        "referrals invites 推荐 邀请好友 推荐计划 复制链接 发送邀请"
     }
 
     fn render(

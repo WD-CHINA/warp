@@ -25,6 +25,7 @@ use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::drive::settings::WarpDriveSettings;
+use crate::settings::settings_text;
 
 #[derive(Debug, Clone)]
 pub enum WarpDriveSettingsPageAction {
@@ -40,7 +41,10 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
 ) {
     ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(
         vec![ToggleSettingActionPair::custom(
-            SettingActionPairDescriptions::new("Enable Warp Drive", "Disable Warp Drive"),
+            SettingActionPairDescriptions::new(
+                settings_text("Enable Warp Drive", app),
+                settings_text("Disable Warp Drive", app),
+            ),
             builder(SettingsAction::WarpDrive(
                 WarpDriveSettingsPageAction::ToggleShowWarpDrive,
             )),
@@ -153,7 +157,7 @@ impl SettingsWidget for WarpDriveHeaderWidget {
     type View = WarpDriveSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "warp drive sign up"
+        "warp drive sign up 注册 创建账户"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -167,13 +171,13 @@ impl SettingsWidget for WarpDriveHeaderWidget {
         &self,
         _view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let ui_builder = appearance.ui_builder();
 
         let message = Container::new(
             Text::new_inline(
-                "To use Warp Drive, please create an account.".to_string(),
+                settings_text("To use Warp Drive, please create an account.", app).to_string(),
                 appearance.ui_font_family(),
                 14.,
             )
@@ -205,7 +209,7 @@ impl SettingsWidget for WarpDriveHeaderWidget {
                     }),
                     ..Default::default()
                 })
-                .with_text_label("Sign up".to_owned())
+                .with_text_label(settings_text("Sign up", app).to_owned())
                 .build()
                 .on_click(move |ctx, _, _| {
                     ctx.dispatch_typed_action(WarpDriveSettingsPageAction::SignUp);
@@ -236,7 +240,7 @@ impl SettingsWidget for WarpDriveToggleWidget {
     type View = WarpDriveSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "warp drive tools panel command palette search workflows prompts notebooks environment variables"
+        "warp drive tools panel command palette search workflows prompts notebooks environment variables 工作空间 工作流 提示词 环境变量"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -252,7 +256,7 @@ impl SettingsWidget for WarpDriveToggleWidget {
         let settings = WarpDriveSettings::as_ref(app);
 
         render_body_item::<WarpDriveSettingsPageAction>(
-            "Warp Drive".into(),
+            settings_text("Warp Drive", app).to_string(),
             Some(AdditionalInfo {
                 mouse_state: self.info_icon_mouse_state.clone(),
                 on_click_action: Some(WarpDriveSettingsPageAction::OpenUrl(
@@ -273,7 +277,13 @@ impl SettingsWidget for WarpDriveToggleWidget {
                     ctx.dispatch_typed_action(WarpDriveSettingsPageAction::ToggleShowWarpDrive);
                 })
                 .finish(),
-            Some("Warp Drive is a workspace in your terminal where you can save Workflows, Notebooks, Prompts, and Environment Variables for personal use or to share with a team.".into()),
+            Some(
+                settings_text(
+                    "Warp Drive is a workspace in your terminal where you can save Workflows, Notebooks, Prompts, and Environment Variables for personal use or to share with a team.",
+                    app,
+                )
+                .to_string(),
+            ),
         )
     }
 }

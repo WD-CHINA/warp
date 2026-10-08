@@ -8,13 +8,16 @@ Do not translate storage keys, settings section slugs, action identifiers, or sh
 
 GUI Settings uses the local `general.interface_language` preference (`system`, `en`, or
 `zh-CN`). Change it under Settings → Account → Interface language, or through the command
-palette. Settings navigation, cataloged page titles, account actions, version update messages,
-scripting installation controls, and the language row update immediately. Account and scripting
-widgets also include Chinese search terms. Privacy and Appearance now include translated
-labels, descriptions, category headings, and enumerated controls; these update when the
-language changes, including the custom redaction modal.
-Unmigrated widgets continue to display their existing English text. The shared catalog API
-is available to both front-ends; TUI text has not yet been migrated.
+palette. Settings navigation, page titles, and category headers are cataloged centrally, so
+they translate as soon as a catalog entry exists. The Account, Appearance, Privacy, Scripting,
+Knowledge, Warp Drive, Referrals, Warpify, Keyboard shortcuts, Shared blocks, Third party CLI
+agents, Codebase Indexing, Editor and Code Review, Profiles, Cloud Environments, and API keys
+pages translate their labels, descriptions, enumerated controls, buttons, empty states, and
+toasts; migrated widgets also answer Chinese search terms. Unmigrated pages and widgets
+continue to display their existing English text. Catalog values may embed `{placeholder}`
+tokens that call sites substitute for dynamic values. `settings_text` falls back to English
+when the locale settings model is not registered, so rendering stays safe in test harnesses.
+The shared catalog API is available to both front-ends; TUI text has not yet been migrated.
 
 The same preference can be set in `settings.toml`:
 

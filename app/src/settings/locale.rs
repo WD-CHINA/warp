@@ -22,6 +22,9 @@ define_settings_group!(LocaleSettings, settings: [
 static SYSTEM_LOCALE: LazyLock<Option<String>> = LazyLock::new(sys_locale::get_locale);
 
 fn interface_locale(ctx: &AppContext) -> Locale {
+    if !ctx.has_singleton_model::<LocaleSettings>() {
+        return Locale::English;
+    }
     let preference = LocaleSettings::as_ref(ctx).interface_language.value();
     Locale::resolve(preference, SYSTEM_LOCALE.as_deref())
 }
