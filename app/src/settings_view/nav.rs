@@ -6,6 +6,7 @@ use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use super::SettingsSection;
 use super::settings_page::{MatchData, NAV_ITEM_LEFT_MARGIN};
 use crate::appearance::Appearance;
+use crate::settings::settings_text;
 use crate::ui_components::icons::Icon;
 
 /// The font size for subpage items inside an umbrella.
@@ -53,7 +54,11 @@ impl SettingsUmbrella {
     /// Returns a `Hoverable` so the entire row shares a single hover/click
     /// target — i.e. the hover styling and pointing-hand cursor apply to the
     /// whole clickable area rather than just the text.
-    pub fn render_umbrella_row(&self, appearance: &Appearance) -> Hoverable {
+    pub fn render_umbrella_row(
+        &self,
+        appearance: &Appearance,
+        ctx: &warpui::AppContext,
+    ) -> Hoverable {
         let chevron_icon = if self.expanded {
             Icon::ChevronUp
         } else {
@@ -73,7 +78,7 @@ impl SettingsUmbrella {
             .button(ButtonVariant::Text, self.button_state_handle.clone())
             .with_text_and_icon_label(TextAndIcon::new(
                 TextAndIconAlignment::TextFirst,
-                self.label.to_string(),
+                settings_text(self.label, ctx).to_string(),
                 chevron_icon.to_warpui_icon(text_color),
                 MainAxisSize::Max,
                 MainAxisAlignment::SpaceBetween,
@@ -95,11 +100,12 @@ impl SettingsUmbrella {
         appearance: &Appearance,
         match_data: MatchData,
         is_active: bool,
+        ctx: &warpui::AppContext,
     ) -> Option<Hoverable> {
         let section = self.subpages.get(index)?;
         let mouse_state = self.subpage_button_states.get(index)?.clone();
 
-        let label = section.to_string() + &match_data.to_string();
+        let label = settings_text(&section.to_string(), ctx).to_string() + &match_data.to_string();
 
         let hoverable = appearance
             .ui_builder()

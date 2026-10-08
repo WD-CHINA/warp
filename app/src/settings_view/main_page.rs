@@ -18,7 +18,7 @@ use warpui::elements::{
     Radius, Shrinkable, Text,
 };
 use warpui::fonts::Weight;
-use warpui::keymap::ContextPredicate;
+use warpui::keymap::{BindingDescription, ContextPredicate, EditableBinding};
 use warpui::platform::Cursor;
 use warpui::ui_components::button::{ButtonVariant, TextAndIcon, TextAndIconAlignment};
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
@@ -31,7 +31,7 @@ use warpui::{
 use super::settings_page::{
     AdditionalInfo, HEADER_PADDING, LocalOnlyIconState, MatchData, PageTitle, PageType,
     SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState, render_body_item,
-    render_customer_type_badge,
+    render_customer_type_badge, render_dropdown_item,
 };
 use super::{
     SettingsAction, SettingsSection, ToggleSettingActionPair, flags, plan_header_presentation,
@@ -44,6 +44,8 @@ use crate::auth::{AuthStateProvider, UserUid};
 use crate::autoupdate::{self, AutoupdateStage, AutoupdateState};
 use crate::server::ids::ServerId;
 use crate::settings::cloud_preferences::CloudPreferencesSettings;
+use crate::settings::{LocaleSettings, interface_text, settings_text};
+use crate::view_components::{Dropdown, DropdownItem};
 use crate::workspace::WorkspaceAction;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -64,6 +66,36 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
     context: &ContextPredicate,
     builder: fn(SettingsAction) -> T,
 ) {
+    app.register_editable_bindings(
+        [
+            (
+                "settings:interface_language:system",
+                "system",
+                "Use system interface language",
+            ),
+            (
+                "settings:interface_language:en",
+                "en",
+                "Set interface language to English",
+            ),
+            (
+                "settings:interface_language:zh-CN",
+                "zh-CN",
+                "设置界面语言为简体中文",
+            ),
+        ]
+        .into_iter()
+        .map(|(name, code, label)| {
+            EditableBinding::new(
+                name,
+                BindingDescription::new(label),
+                builder(SettingsAction::MainPageToggle(
+                    MainPageAction::SetInterfaceLanguage(code.to_string()),
+                )),
+            )
+            .with_context_predicate(context.clone())
+        }),
+    );
     let mut toggle_binding_pairs = Vec::new();
     maybe_add_settings_sync_toggle_binding(app, context, builder, &mut toggle_binding_pairs);
 
@@ -85,7 +117,7 @@ fn maybe_add_settings_sync_toggle_binding<T: Action + Clone>(
         *lock = true;
         toggle_binding_pairs.push(
             ToggleSettingActionPair::new(
-                "settings sync",
+                "settings sync 同步 设置",
                 builder(SettingsAction::MainPageToggle(
                     MainPageAction::ToggleSettingsSync,
                 )),
@@ -112,12 +144,13 @@ pub fn handle_experiment_change(app: &mut AppContext) {
     ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(toggle_binding_pairs, app);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MainPageAction {
     Relaunch,
     DownloadUpdate,
     CheckForUpdate,
     ToggleSettingsSync,
+    SetInterfaceLanguage(String),
     Upgrade {
         team_uid: Option<ServerId>,
         user_id: UserUid,
@@ -164,6 +197,7 @@ pub enum MainSettingsPageEvent {
 pub struct MainSettingsPageView {
     self_handle: WeakViewHandle<Self>,
     page: PageType<Self>,
+    language_dropdown: ViewHandle<Dropdown<MainPageAction>>,
     auth_state: Arc<AuthState>,
 }
 
@@ -200,6 +234,12 @@ impl TypedActionView for MainSettingsPageView {
             }
             MainPageAction::CheckForUpdate => {
                 ctx.emit(MainSettingsPageEvent::CheckForUpdate);
+                ctx.notify();
+            }
+            MainPageAction::SetInterfaceLanguage(language) => {
+                LocaleSettings::handle(ctx).update(ctx, |settings, ctx| {
+                    report_if_error!(settings.interface_language.set_value(language.clone(), ctx));
+                });
                 ctx.notify();
             }
             MainPageAction::ToggleSettingsSync => {
@@ -260,6 +300,34 @@ impl View for MainSettingsPageView {
 
 impl MainSettingsPageView {
     pub fn new(ctx: &mut ViewContext<MainSettingsPageView>) -> Self {
+        let language_dropdown = ctx.add_typed_action_view(|ctx| {
+            let mut dropdown = Dropdown::new(ctx);
+            dropdown.add_items(
+                [
+                    ("system", "跟随系统 / System"),
+                    ("en", "English"),
+                    ("zh-CN", "简体中文"),
+                ]
+                .into_iter()
+                .map(|(code, label)| {
+                    DropdownItem::new(
+                        label,
+                        MainPageAction::SetInterfaceLanguage(code.to_string()),
+                    )
+                })
+                .collect(),
+                ctx,
+            );
+            dropdown.set_selected_by_index(language_index(ctx), ctx);
+            dropdown
+        });
+        let dropdown_handle = language_dropdown.clone();
+        ctx.subscribe_to_model(&LocaleSettings::handle(ctx), move |_, _, _, ctx| {
+            dropdown_handle.update(ctx, |dropdown, ctx| {
+                dropdown.set_selected_by_index(language_index(ctx), ctx);
+            });
+            ctx.notify();
+        });
         let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
 
         let autoupdate_state_handle = AutoupdateState::handle(ctx);
@@ -278,6 +346,7 @@ impl MainSettingsPageView {
         });
 
         let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
+            Box::new(LanguageWidget),
             Box::new(AccountWidget::default()),
             Box::new(DividerWidget {}),
         ];
@@ -306,6 +375,7 @@ impl MainSettingsPageView {
         let page = PageType::new_uncategorized(widgets, Some(PageTitle::new("Account")));
 
         MainSettingsPageView {
+            language_dropdown,
             self_handle: ctx.handle(),
             page,
             auth_state,
@@ -339,6 +409,7 @@ impl AccountWidget {
         &self,
         auth_state: &AuthState,
         appearance: &Appearance,
+        ctx: &AppContext,
     ) -> Box<dyn Element> {
         let button_styles = UiComponentStyles {
             font_size: Some(14.),
@@ -360,7 +431,7 @@ impl AccountWidget {
                 self.ui_state_handles.anonymous_user_sign_up_button.clone(),
             )
             .with_style(button_styles)
-            .with_text_label("Sign up".to_owned())
+            .with_text_label(settings_text("Sign up", ctx).to_owned())
             .build()
             .on_click(move |ctx, _, _| {
                 ctx.dispatch_typed_action(MainPageAction::SignupAnonymousUser);
@@ -387,7 +458,7 @@ impl AccountWidget {
                     .with_text_and_icon_label(
                         TextAndIcon::new(
                             TextAndIconAlignment::IconFirst,
-                            "Compare plans",
+                            settings_text("Compare plans", ctx),
                             Icon::CoinsStacked.to_warpui_icon(appearance.theme().accent()),
                             MainAxisSize::Min,
                             MainAxisAlignment::Center,
@@ -526,7 +597,7 @@ impl AccountWidget {
                         appearance
                             .ui_builder()
                             .link(
-                                "Contact support".into(),
+                                settings_text("Contact support", app).to_owned(),
                                 Some("mailto:support@warp.dev".into()),
                                 None,
                                 self.ui_state_handles.enterprise_contact_us_link.clone(),
@@ -543,7 +614,7 @@ impl AccountWidget {
                             appearance
                                 .ui_builder()
                                 .link(
-                                    "Manage billing".into(),
+                                    settings_text("Manage billing", app).to_owned(),
                                     None,
                                     Some(Box::new(move |ctx| {
                                         ctx.dispatch_typed_action(
@@ -575,7 +646,7 @@ impl AccountWidget {
                             appearance
                                 .ui_builder()
                                 .link(
-                                    description.into(),
+                                    settings_text(description, app).to_owned(),
                                     None,
                                     Some(Box::new(move |ctx| {
                                         ctx.dispatch_typed_action(MainPageAction::Upgrade {
@@ -598,7 +669,7 @@ impl AccountWidget {
                 appearance
                     .ui_builder()
                     .link(
-                        "Compare plans".into(),
+                        settings_text("Compare plans", app).to_owned(),
                         None,
                         Some(Box::new(move |ctx| {
                             ctx.dispatch_typed_action(MainPageAction::Upgrade {
@@ -633,7 +704,7 @@ impl SettingsWidget for AccountWidget {
     type View = MainSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "account sign up"
+        "account sign up 账户 注册"
     }
 
     fn render(
@@ -643,7 +714,7 @@ impl SettingsWidget for AccountWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         let account_info = if view.auth_state.is_anonymous_or_logged_out() {
-            self.render_anonymous_account_info(view.auth_state.as_ref(), appearance)
+            self.render_anonymous_account_info(view.auth_state.as_ref(), appearance, app)
         } else {
             let profile_image_source = view.auth_state.user_photo_url().map(|url| {
                 asset_cache::url_source_with_persistence(url, &warp_core::paths::cache_dir())
@@ -698,7 +769,7 @@ impl SettingsWidget for SettingsSyncWidget {
     type View = MainSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "settings sync"
+        "settings sync 同步 设置"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -725,7 +796,7 @@ impl SettingsWidget for SettingsSyncWidget {
         };
 
         Container::new(render_body_item::<MainPageAction>(
-            "Settings sync".to_string(),
+            settings_text("Settings sync", app).to_owned(),
             Some(label_info),
             // Cloud prefs are always synced, so no need to show the local-only icon.
             LocalOnlyIconState::Hidden,
@@ -787,7 +858,7 @@ impl SettingsWidget for EarnRewardsWidget {
     type View = MainSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "earn rewards referral share friends"
+        "earn rewards referral share friends 奖励 邀请 好友"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -800,16 +871,16 @@ impl SettingsWidget for EarnRewardsWidget {
         &self,
         _view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         Container::new(
             self.render_row(
                 appearance,
-                REFERRAL_CTA,
+                settings_text(REFERRAL_CTA, app),
                 appearance
                     .ui_builder()
                     .link(
-                        "Refer a friend".into(),
+                        settings_text("Refer a friend", app).to_owned(),
                         None,
                         Some(Box::new(move |ctx| {
                             ctx.dispatch_typed_action(WorkspaceAction::ShowReferralSettingsPage);
@@ -942,7 +1013,7 @@ impl VersionInfoWidget {
                     1.0,
                     Align::new(
                         Text::new_inline(
-                            "Version".to_string(),
+                            settings_text("Version", app).to_owned(),
                             appearance.ui_font_family(),
                             REGULAR_TEXT_FONT_SIZE,
                         )
@@ -959,7 +1030,7 @@ impl VersionInfoWidget {
                 appearance
                     .ui_builder()
                     .link(
-                        call_to_action_content.text.into(),
+                        settings_text(call_to_action_content.text, app).to_owned(),
                         None,
                         Some(Box::new(move |ctx| {
                             ctx.dispatch_typed_action(call_to_action_content.action.clone());
@@ -1016,7 +1087,7 @@ impl VersionInfoWidget {
         if let Some(status_content) = status_content {
             second_row.add_child(
                 Text::new_inline(
-                    status_content.text.to_string(),
+                    settings_text(status_content.text, app).to_owned(),
                     appearance.ui_font_family(),
                     REGULAR_TEXT_FONT_SIZE,
                 )
@@ -1040,7 +1111,7 @@ impl SettingsWidget for VersionInfoWidget {
     type View = MainSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "version update"
+        "version update 版本 更新"
     }
 
     fn render(
@@ -1066,11 +1137,11 @@ struct LogoutWidget {
 }
 
 impl LogoutWidget {
-    fn render_logout_button(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_logout_button(&self, appearance: &Appearance, ctx: &AppContext) -> Box<dyn Element> {
         appearance
             .ui_builder()
             .button(ButtonVariant::Secondary, self.mouse_state.clone())
-            .with_text_label(LOG_OUT_TEXT.into())
+            .with_text_label(settings_text(LOG_OUT_TEXT, ctx).to_owned())
             .with_style(UiComponentStyles {
                 font_size: Some(14.),
                 padding: Some(Coords::uniform(8.).left(32.).right(32.)),
@@ -1199,7 +1270,7 @@ impl SettingsWidget for LogoutWidget {
     type View = MainSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "sign out log out logout"
+        "sign out log out logout 退出 登录"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -1212,10 +1283,10 @@ impl SettingsWidget for LogoutWidget {
         &self,
         _view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         Container::new(
-            Align::new(self.render_logout_button(appearance))
+            Align::new(self.render_logout_button(appearance, app))
                 .left()
                 .finish(),
         )
@@ -1259,3 +1330,47 @@ impl From<ViewHandle<MainSettingsPageView>> for SettingsPageViewHandle {
         SettingsPageViewHandle::Main(view_handle)
     }
 }
+
+fn language_index(ctx: &AppContext) -> usize {
+    match LocaleSettings::as_ref(ctx)
+        .interface_language
+        .value()
+        .as_str()
+    {
+        "en" => 1,
+        "zh-CN" => 2,
+        "system" => 0,
+        _ => 1,
+    }
+}
+
+struct LanguageWidget;
+
+impl SettingsWidget for LanguageWidget {
+    type View = MainSettingsPageView;
+
+    fn search_terms(&self) -> &str {
+        "interface language locale translation english chinese 界面 语言 中文 英文 国际化"
+    }
+
+    fn render(
+        &self,
+        view: &Self::View,
+        appearance: &Appearance,
+        ctx: &AppContext,
+    ) -> Box<dyn Element> {
+        render_dropdown_item(
+            appearance,
+            interface_text("settings.interface_language", ctx),
+            Some(interface_text("settings.language_description", ctx)),
+            None,
+            LocalOnlyIconState::Hidden,
+            None,
+            &view.language_dropdown,
+        )
+    }
+}
+
+#[cfg(test)]
+#[path = "main_page_tests.rs"]
+mod tests;

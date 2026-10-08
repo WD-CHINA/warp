@@ -85,6 +85,7 @@ pub fn register_all_settings(ctx: &mut AppContext) {
     TuiVoiceSettings::register(ctx);
     TuiZeroStateSettings::register(ctx);
     AccessibilitySettings::register(ctx);
+    super::LocaleSettings::register(ctx);
     NativePreferenceSettings::register(ctx);
     CloudPreferencesSettings::register(ctx);
     WarpDrivePrivacySettings::register(ctx);

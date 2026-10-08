@@ -64,6 +64,7 @@ pub fn initialize_settings_for_tests_with_mode(
     });
 
     AccessibilitySettings::register(app);
+    crate::settings::LocaleSettings::register(app);
     app.update(AISettings::register_and_subscribe_to_events);
     AliasExpansionSettings::register(app);
     CloudAgentSettings::register(app);

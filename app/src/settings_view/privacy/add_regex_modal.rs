@@ -16,6 +16,7 @@ use crate::editor::{
     TextOptions,
 };
 use crate::modal::{Modal, ModalViewState};
+use crate::settings::settings_text;
 
 const LABEL_FONT_SIZE: f32 = 12.;
 
@@ -191,7 +192,7 @@ impl View for AddRegexModal {
         let is_submit_enabled = !pattern_text.trim().is_empty() && is_valid_regex;
 
         let name_label = Text::new(
-            "Name (optional)",
+            settings_text("Name (optional)", app),
             appearance.ui_font_family(),
             LABEL_FONT_SIZE,
         )
@@ -199,7 +200,7 @@ impl View for AddRegexModal {
         .finish();
 
         let regex_label = Text::new(
-            "Regex pattern",
+            settings_text("Regex pattern", app),
             appearance.ui_font_family(),
             LABEL_FONT_SIZE,
         )
@@ -218,7 +219,7 @@ impl View for AddRegexModal {
                 ButtonVariant::Accent,
                 self.submit_button_mouse_state.clone(),
             )
-            .with_text_label("Add regex".to_string())
+            .with_text_label(settings_text("Add regex", app).to_string())
             .with_style(button_style);
 
         if !is_submit_enabled {
@@ -233,7 +234,7 @@ impl View for AddRegexModal {
                     1.,
                     Container::new(if !is_valid_regex && !pattern_text.trim().is_empty() {
                         Text::new(
-                            "Invalid regex",
+                            settings_text("Invalid regex", app),
                             appearance.ui_font_family(),
                             LABEL_FONT_SIZE,
                         )
@@ -259,7 +260,7 @@ impl View for AddRegexModal {
                         ButtonVariant::Secondary,
                         self.cancel_button_mouse_state.clone(),
                     )
-                    .with_text_label("Cancel".to_string())
+                    .with_text_label(settings_text("Cancel", app).to_string())
                     .with_style(button_style)
                     .build()
                     .on_click(move |ctx, _, _| {
@@ -327,7 +328,16 @@ impl AddRegexModalViewState {
         self.state.render()
     }
 
+    pub fn refresh_language<T: View>(&mut self, ctx: &mut ViewContext<T>) {
+        self.state.view.update(ctx, |modal, ctx| {
+            modal.set_title(Some(settings_text("Add regex pattern", ctx).to_owned()));
+            modal.body().update(ctx, |_, ctx| ctx.notify());
+            ctx.notify();
+        });
+    }
+
     pub fn open<T: View>(&mut self, ctx: &mut ViewContext<T>) {
+        self.refresh_language(ctx);
         self.state.open();
         self.state.view.update(ctx, |modal, ctx| {
             modal.body().update(ctx, |body, ctx| {

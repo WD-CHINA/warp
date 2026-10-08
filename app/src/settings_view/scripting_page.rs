@@ -20,7 +20,9 @@ use super::settings_page::{
 use super::{SettingsSection, ToggleState};
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
-use crate::settings::{LocalControlMode, LocalControlModeSetting, LocalControlSettings};
+use crate::settings::{
+    LocalControlMode, LocalControlModeSetting, LocalControlSettings, settings_text,
+};
 #[cfg(target_os = "macos")]
 use crate::view_components::DismissibleToast;
 use crate::view_components::{Dropdown, DropdownItem};
@@ -219,14 +221,14 @@ impl SettingsWidget for WarpControlCliInstallWidget {
     type View = ScriptingSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "warp control cli command warpctrl install scripting"
+        "warp control cli command warpctrl install scripting 安装 脚本 命令"
     }
 
     fn render(
         &self,
         view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let installed = cli_install::is_warpctrl_installed();
         let disabled = view.warpctrl_installing || installed;
@@ -243,7 +245,7 @@ impl SettingsWidget for WarpControlCliInstallWidget {
                 ButtonVariant::Secondary,
                 self.install_button_mouse_state.clone(),
             )
-            .with_text_label(label.to_owned());
+            .with_text_label(settings_text(label, app).to_owned());
         if disabled {
             button = button.disabled();
         }
@@ -259,13 +261,19 @@ impl SettingsWidget for WarpControlCliInstallWidget {
         };
 
         render_body_item::<ScriptingSettingsPageAction>(
-            "Warp Control CLI command".into(),
+            settings_text("Warp Control CLI command", app).to_owned(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
             appearance,
             button,
-            Some("Install the warpctrl command for scripting Warp from your terminal.".to_owned()),
+            Some(
+                settings_text(
+                    "Install the warpctrl command for scripting Warp from your terminal.",
+                    app,
+                )
+                .to_owned(),
+            ),
         )
     }
 }
@@ -275,7 +283,7 @@ impl SettingsWidget for LocalControlModeWidget {
     type View = ScriptingSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "scripting warp control automation warpctrl local cli scripts disabled enabled"
+        "scripting warp control automation warpctrl local cli scripts disabled enabled 脚本 自动化 控制"
     }
 
     fn render(
@@ -296,7 +304,13 @@ impl SettingsWidget for LocalControlModeWidget {
             ToggleState::Enabled,
             appearance,
             ChildView::new(&view.local_control_mode_dropdown).finish(),
-            Some("warpctrl allows for scripting Warp's UI. Use with care.".to_owned()),
+            Some(
+                settings_text(
+                    "warpctrl allows for scripting Warp's UI. Use with care.",
+                    app,
+                )
+                .to_owned(),
+            ),
         )
     }
 }

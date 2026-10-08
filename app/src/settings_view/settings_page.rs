@@ -51,7 +51,7 @@ use super::warp_agent_page::WarpAgentPageView;
 use super::warp_drive_page::WarpDriveSettingsPageView;
 use super::warpify_page::WarpifyPageView;
 use crate::appearance::Appearance;
-use crate::settings::CloudPreferencesSettings;
+use crate::settings::{CloudPreferencesSettings, settings_text};
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
@@ -133,6 +133,34 @@ pub enum SettingsPageViewHandle {
 }
 
 impl SettingsPageViewHandle {
+    pub fn notify(&self, ctx: &mut AppContext) {
+        use SettingsPageViewHandle::*;
+        match self {
+            Main(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Appearance(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Features(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            SharedBlocks(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Keybindings(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            About(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            CodeIndexing(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            EditorAndCodeReview(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Teams(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            WarpCloudAgentAPIKeys(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Privacy(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Warpify(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Referrals(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Scripting(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            WarpAgent(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            AgentProfiles(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            Knowledge(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            CLIAgents(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            CloudEnvironments(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            BillingAndUsage(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            MCPServers(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+            WarpDrive(handle) => handle.update(ctx, |_, ctx| ctx.notify()),
+        }
+    }
+
     pub fn child_view(&self) -> Box<dyn Element> {
         use SettingsPageViewHandle::*;
         match self {
@@ -186,6 +214,7 @@ impl SettingsPage {
         appearance: &Appearance,
         match_data: MatchData,
         clicked: bool,
+        ctx: &AppContext,
     ) -> Hoverable {
         appearance
             .ui_builder()
@@ -197,7 +226,9 @@ impl SettingsPage {
                 },
                 self.button_state_handle.clone(),
             )
-            .with_text_label(self.section.to_string() + &match_data.to_string())
+            .with_text_label(
+                settings_text(&self.section.to_string(), ctx).to_string() + &match_data.to_string(),
+            )
             .with_style(
                 UiComponentStyles::default()
                     .set_border_width(0.)
@@ -1525,7 +1556,7 @@ fn render_page_title_with_trailing<V: warpui::View>(
     app: &AppContext,
 ) -> Box<dyn Element> {
     let title_row = render_header_with_trailing_element(
-        render_title_text(title.text, size, appearance),
+        render_title_text(settings_text(title.text, app), size, appearance),
         title.trailing_element.as_ref(),
         view,
         appearance,
@@ -1835,7 +1866,11 @@ impl<V: warpui::View> PageType<V> {
                 {
                     if let Some(title) = title {
                         let col = Flex::column()
-                            .with_child(render_page_title(title, HEADER_FONT_SIZE, appearance))
+                            .with_child(render_page_title(
+                                settings_text(title, app),
+                                HEADER_FONT_SIZE,
+                                appearance,
+                            ))
                             .with_child(widget.render_widget(view, false, appearance, app));
                         page = col.finish();
                     } else {
@@ -1898,9 +1933,13 @@ impl<V: warpui::View> PageType<V> {
                 for (i, category) in categories.into_iter().enumerate() {
                     if !category.title.is_empty() {
                         let header = if let Some(subtitle) = category.subtitle {
-                            render_sub_header_with_description(appearance, category.title, subtitle)
+                            render_sub_header_with_description(
+                                appearance,
+                                settings_text(category.title, app),
+                                settings_text(subtitle, app).to_owned(),
+                            )
                         } else {
-                            render_sub_header(appearance, category.title, None)
+                            render_sub_header(appearance, settings_text(category.title, app), None)
                         };
                         page.add_child(render_header_with_trailing_element(
                             header,

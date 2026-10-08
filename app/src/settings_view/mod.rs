@@ -64,7 +64,9 @@ use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, Direction, PaneConfiguration, PaneEvent, SplitPaneState};
 use crate::server::server_api::ServerApiProvider;
 use crate::server::telemetry::MCPServerCollectionPaneEntrypoint;
-use crate::settings::{AISettings, BlockVisibilitySettings, SettingsFileError};
+use crate::settings::{
+    AISettings, BlockVisibilitySettings, LocaleSettings, SettingsFileError, settings_text,
+};
 use crate::settings_view::mcp_servers_page::{MCPServersSettingsPage, MCPServersSettingsPageEvent};
 use crate::terminal::SizeInfo;
 use crate::terminal::model::blockgrid::BlockGrid;
@@ -1198,6 +1200,12 @@ pub struct SettingsView {
 
 impl SettingsView {
     pub fn new(page: Option<SettingsSection>, ctx: &mut ViewContext<Self>) -> Self {
+        ctx.subscribe_to_model(&LocaleSettings::handle(ctx), |view, _, _, ctx| {
+            for page in &view.settings_pages {
+                page.view_handle.notify(ctx);
+            }
+            ctx.notify();
+        });
         let pane_configuration = ctx.add_model(|_ctx| PaneConfiguration::new("Settings"));
 
         let global_resource_handles = GlobalResourceHandlesProvider::as_ref(ctx).get().clone();
@@ -2502,7 +2510,7 @@ impl View for SettingsView {
                         let page_active = section == self.current_settings_page;
                         buttons.add_child(
                             SavePosition::new(
-                                page.render_page_button(appearance, *match_data, page_active)
+                                page.render_page_button(appearance, *match_data, page_active, app)
                                     .on_click(move |ctx, _, _| {
                                         ctx.dispatch_typed_action(
                                             SettingsAction::SelectAndRefresh(section),
@@ -2536,7 +2544,7 @@ impl View for SettingsView {
                     buttons.add_child(
                         SavePosition::new(
                             umbrella
-                                .render_umbrella_row(appearance)
+                                .render_umbrella_row(appearance, app)
                                 .on_click(move |ctx, _, _| {
                                     ctx.dispatch_typed_action(SettingsAction::ToggleUmbrella(
                                         nav_index,
@@ -2563,9 +2571,9 @@ impl View for SettingsView {
                             }
 
                             let is_active = subpage_section == self.current_settings_page;
-                            if let Some(hoverable) = umbrella
-                                .render_subpage_button(sub_idx, appearance, match_data, is_active)
-                            {
+                            if let Some(hoverable) = umbrella.render_subpage_button(
+                                sub_idx, appearance, match_data, is_active, app,
+                            ) {
                                 buttons.add_child(
                                     SavePosition::new(
                                         hoverable
@@ -2896,9 +2904,9 @@ impl BackingView for SettingsView {
     fn render_header_content(
         &self,
         _ctx: &view::HeaderRenderContext<'_>,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> view::HeaderContent {
-        view::HeaderContent::simple("Settings")
+        view::HeaderContent::simple(settings_text("Settings", app))
     }
 
     fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, _ctx: &mut ViewContext<Self>) {
