@@ -24,6 +24,7 @@ use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::{MCPServerState, TemplatableMCPServerManager};
 use crate::appearance::Appearance;
 use crate::cloud_object::{CloudObject, CloudObjectUuidLookup as _};
+use crate::settings::settings_text;
 use crate::settings_view::mcp_servers::{ServerCardItemId, style};
 use crate::ui_components::avatar::{Avatar, AvatarContent, StatusElementTypes};
 use crate::ui_components::blended_colors;
@@ -468,13 +469,14 @@ impl ServerCardView {
         &self,
         tools: &[String],
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let text_color =
             blended_colors::text_sub(appearance.theme(), appearance.theme().background());
 
         if tools.is_empty() {
             return Text::new(
-                "No tools available".to_string(),
+                settings_text("No tools available", app),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )
@@ -496,7 +498,8 @@ impl ServerCardView {
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
                 .with_child(
                     Text::new(
-                        format!("{} tools available", tools.len()),
+                        settings_text("{count} tools available", app)
+                            .replace("{count}", &tools.len().to_string()),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -682,7 +685,7 @@ impl ServerCardView {
             info_column = info_column.with_child(
                 FormattedTextElement::new(
                     FormattedText::new([FormattedTextLine::Line(vec![
-                        FormattedTextFragment::plain_text(status_line.clone()),
+                        FormattedTextFragment::plain_text(settings_text(status_line, app)),
                     ])]),
                     appearance.ui_builder().ui_font_size(),
                     appearance.ui_font_family(),
@@ -731,7 +734,12 @@ impl ServerCardView {
             .build()
     }
 
-    fn render_actions_row(&self, state: &MouseState, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_actions_row(
+        &self,
+        state: &MouseState,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let item_id = self.item_id;
         let mut actions_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
@@ -745,7 +753,7 @@ impl ServerCardView {
                     self.build_icon_button(
                         appearance,
                         Icon::Code1,
-                        "Show logs".to_string(),
+                        settings_text("Show logs", app).to_string(),
                         self.mouse_handles.show_logs_icon_button.clone(),
                     )
                     .on_click(move |ctx, _, _| {
@@ -760,7 +768,7 @@ impl ServerCardView {
                     self.build_icon_button(
                         appearance,
                         Icon::LogOut,
-                        "Log out".to_string(),
+                        settings_text("Log out", app).to_string(),
                         self.mouse_handles.logout_icon_button.clone(),
                     )
                     .on_click(move |ctx, _, _| {
@@ -775,7 +783,7 @@ impl ServerCardView {
                     self.build_icon_button(
                         appearance,
                         Icon::Share,
-                        "Share server".to_string(),
+                        settings_text("Share server", app).to_string(),
                         self.mouse_handles.share_icon_button.clone(),
                     )
                     .on_click(move |ctx, _, _| {
@@ -790,7 +798,7 @@ impl ServerCardView {
                     self.build_icon_button(
                         appearance,
                         Icon::Pencil,
-                        "Edit".to_string(),
+                        settings_text("Edit", app).to_string(),
                         self.mouse_handles.edit_icon_button.clone(),
                     )
                     .on_click(move |ctx, _, _| {
@@ -802,7 +810,8 @@ impl ServerCardView {
         }
 
         if self.render_options.show_update_available_icon_button {
-            actions_row = actions_row.with_child(self.render_update_available_icon(appearance));
+            actions_row =
+                actions_row.with_child(self.render_update_available_icon(appearance, app));
         }
 
         if self.render_options.show_view_logs_text_button {
@@ -812,7 +821,7 @@ impl ServerCardView {
                     ButtonVariant::Secondary,
                     self.mouse_handles.view_logs_button.clone(),
                 )
-                .with_centered_text_label("View logs".to_string())
+                .with_centered_text_label(settings_text("View logs", app).to_string())
                 .build()
                 .on_click(move |ctx, _, _| {
                     ctx.dispatch_typed_action(ServerCardAction::ViewLogs(item_id))
@@ -828,7 +837,7 @@ impl ServerCardView {
                     ButtonVariant::Accent,
                     self.mouse_handles.edit_config_button.clone(),
                 )
-                .with_centered_text_label("Edit config".to_string())
+                .with_centered_text_label(settings_text("Edit config", app).to_string())
                 .build()
                 .on_click(move |ctx, _, _| {
                     ctx.dispatch_typed_action(ServerCardAction::Edit(item_id));
@@ -844,7 +853,7 @@ impl ServerCardView {
                     ButtonVariant::Accent,
                     self.mouse_handles.setup_button.clone(),
                 )
-                .with_centered_text_label("Set up".to_string())
+                .with_centered_text_label(settings_text("Set up", app).to_string())
                 .build()
                 .on_click(move |ctx, _, _| {
                     ctx.dispatch_typed_action(ServerCardAction::Install(item_id));
@@ -886,13 +895,17 @@ impl ServerCardView {
             .finish()
     }
 
-    fn render_update_available_icon(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_update_available_icon(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let item_id = self.item_id;
         let update_available_button = self
             .build_icon_button(
                 appearance,
                 Icon::Refresh,
-                "Server update available".to_string(),
+                settings_text("Server update available", app).to_string(),
                 self.mouse_handles.update_icon_button.clone(),
             )
             .on_click(move |ctx, _, _| {
@@ -1023,11 +1036,11 @@ impl View for ServerCardView {
             info_column = self.add_subtitle_lines(info_column, appearance, app);
 
             if let Some(tools) = &self.tools {
-                let tools_info_row = self.render_tools_expandable(tools, appearance);
+                let tools_info_row = self.render_tools_expandable(tools, appearance, app);
                 info_column = info_column.with_child(tools_info_row)
             }
 
-            let actions_row = self.render_actions_row(state, appearance);
+            let actions_row = self.render_actions_row(state, appearance, app);
 
             let mut card_body = Flex::column()
                 .with_child(

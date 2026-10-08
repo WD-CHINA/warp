@@ -9,13 +9,14 @@ use warpui::fonts::{Properties, Weight};
 use warpui::{AppContext, Element, SingletonEntity, View, ViewHandle};
 
 use crate::ai::llms::CHATGPT_USAGE_URL;
+use crate::settings::settings_text;
 use crate::settings_view::billing_and_usage_page::BillingAndUsagePageAction;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, SecondaryTheme};
 
 /// The button that opens OpenAI's usage page from [`render_chatgpt_usage_card`].
-pub(crate) fn chatgpt_manage_usage_button() -> ActionButton {
-    ActionButton::new("Manage usage", SecondaryTheme)
+pub(crate) fn chatgpt_manage_usage_button(app: &AppContext) -> ActionButton {
+    ActionButton::new(settings_text("Manage usage", app), SecondaryTheme)
         .with_icon(Icon::LinkExternal)
         .on_click(|ctx| {
             ctx.dispatch_typed_action(BillingAndUsagePageAction::OpenUrl(HyperlinkUrl {
@@ -46,7 +47,7 @@ pub(crate) fn render_chatgpt_usage_card(
         .with_height(16.)
         .finish();
     let label = Text::new_inline(
-        "View and manage your ChatGPT usage",
+        settings_text("View and manage your ChatGPT usage", app),
         appearance.ui_font_family(),
         14.,
     )

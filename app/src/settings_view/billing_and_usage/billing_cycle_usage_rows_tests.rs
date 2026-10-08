@@ -1,4 +1,5 @@
 use pathfinder_color::ColorU;
+use warpui::App;
 
 use super::{
     DISABLED_MEMBER_TOOLTIP_TEXT, MemberUsageRow, SourceFilter, dimmed_row_text_color,
@@ -13,6 +14,18 @@ use crate::workspaces::workspace::{
 
 const VIEWER_UID: &str = "viewer-uid";
 const OTHER_UID: &str = "other-uid";
+
+fn for_each_member(
+    entries: &[BillingCycleUsageEntry],
+    members: &[WorkspaceMember],
+    source_filter: SourceFilter,
+) -> Vec<MemberUsageRow> {
+    let entries = entries.to_vec();
+    let members = members.to_vec();
+    App::test((), move |mut app| async move {
+        app.update(|ctx| MemberUsageRow::for_each_member(&entries, &members, source_filter, ctx))
+    })
+}
 
 fn entry(
     subject_type: AiCreditsUsageAndCostSubjectType,
@@ -155,7 +168,7 @@ fn per_member_rows_cover_exactly_the_supplied_roster() {
         5,
     )];
 
-    let rows = MemberUsageRow::for_each_member(
+    let rows = for_each_member(
         &entries,
         &[member(VIEWER_UID), member(OTHER_UID)],
         SourceFilter::All,
@@ -166,7 +179,7 @@ fn per_member_rows_cover_exactly_the_supplied_roster() {
     assert_eq!(rows[0].total_credits, 10);
     assert_eq!(rows[1].total_credits, 0, "zero-usage roster member");
 
-    let rows = MemberUsageRow::for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
+    let rows = for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
     assert_eq!(
         rows.iter()
             .map(|r| r.display_name.as_str())
@@ -195,7 +208,7 @@ fn per_member_rows_mark_departed_users_as_former_members() {
         ),
     ];
 
-    let rows = MemberUsageRow::for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
+    let rows = for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
 
     assert!(
         rows.iter()
@@ -219,7 +232,7 @@ fn per_member_rows_do_not_mark_service_accounts_as_former_members() {
         10,
     )];
 
-    let rows = MemberUsageRow::for_each_member(&entries, &[], SourceFilter::All);
+    let rows = for_each_member(&entries, &[], SourceFilter::All);
 
     assert_eq!(rows.len(), 1);
     assert!(rows[0].is_current_team_member);
@@ -227,7 +240,7 @@ fn per_member_rows_do_not_mark_service_accounts_as_former_members() {
 
 #[test]
 fn per_member_rows_flag_disabled_members_from_the_roster() {
-    let rows = MemberUsageRow::for_each_member(
+    let rows = for_each_member(
         &[],
         &[member(VIEWER_UID), disabled_member(OTHER_UID)],
         SourceFilter::All,
@@ -257,7 +270,7 @@ fn per_member_rows_never_flag_departed_members_as_disabled() {
         10,
     )];
 
-    let rows = MemberUsageRow::for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
+    let rows = for_each_member(&entries, &[member(VIEWER_UID)], SourceFilter::All);
 
     assert!(
         rows.iter()

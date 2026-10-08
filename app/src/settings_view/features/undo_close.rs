@@ -15,6 +15,7 @@ use warpui::{
 
 use crate::appearance::Appearance;
 use crate::editor::{self, EditorView, SingleLineEditorOptions, TextOptions};
+use crate::settings::settings_text;
 use crate::settings_view::features_page::render_group;
 use crate::settings_view::settings_page::{LocalOnlyIconState, ToggleState, render_body_item};
 use crate::undo_close::UndoCloseSettings;
@@ -111,7 +112,11 @@ impl UndoCloseView {
     }
 
     /// Renders the editor for the grace period duration.
-    fn render_grace_period_editor(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_grace_period_editor(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let theme = appearance.theme();
 
         let border_color = if self.is_grace_period_valid {
@@ -133,7 +138,7 @@ impl UndoCloseView {
             .with_child(
                 Container::new(
                     Text::new_inline(
-                        "Grace period (seconds)",
+                        settings_text("Grace period (seconds)", app),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -174,7 +179,7 @@ impl View for UndoCloseView {
         let mut column = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
             .with_child(render_body_item::<Action>(
-                "Enable reopening of closed sessions".into(),
+                settings_text("Enable reopening of closed sessions", app).into(),
                 None,
                 LocalOnlyIconState::for_setting(
                     UndoCloseEnabled::storage_key(),
@@ -197,7 +202,7 @@ impl View for UndoCloseView {
 
         if enabled {
             column.add_child(render_group(
-                [self.render_grace_period_editor(appearance)],
+                [self.render_grace_period_editor(appearance, app)],
                 appearance,
             ));
         }

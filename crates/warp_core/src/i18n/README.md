@@ -8,16 +8,20 @@ Do not translate storage keys, settings section slugs, action identifiers, or sh
 
 GUI Settings uses the local `general.interface_language` preference (`system`, `en`, or
 `zh-CN`). Change it under Settings → Account → Interface language, or through the command
-palette. Settings navigation, page titles, and category headers are cataloged centrally, so
-they translate as soon as a catalog entry exists. The Account, Appearance, Privacy, Scripting,
-Knowledge, Warp Drive, Referrals, Warpify, Keyboard shortcuts, Shared blocks, Third party CLI
-agents, Codebase Indexing, Editor and Code Review, Profiles, Cloud Environments, and API keys
-pages translate their labels, descriptions, enumerated controls, buttons, empty states, and
-toasts; migrated widgets also answer Chinese search terms. Unmigrated pages and widgets
-continue to display their existing English text. Catalog values may embed `{placeholder}`
-tokens that call sites substitute for dynamic values. `settings_text` falls back to English
-when the locale settings model is not registered, so rendering stays safe in test harnesses.
-The shared catalog API is available to both front-ends; TUI text has not yet been migrated.
+palette. Every Settings page is migrated: labels, descriptions, enumerated controls, buttons,
+placeholders, empty and error states, toasts, and tooltips render through `settings_text`, and
+migrated widgets answer Chinese search terms. Navigation items, page titles, and category
+headers are cataloged centrally, so they translate as soon as an entry exists. Catalog values
+may embed `{placeholder}` tokens that call sites substitute for dynamic values.
+`settings_text` falls back to English when the locale settings model is not registered, so
+rendering stays safe in test harnesses.
+
+Text that intentionally stays English: brand and product names, plan and model identifiers,
+technical values (shells, GPU backends, key names, API-key examples), command-palette toggle
+labels (the palette keeps English labels, and account settings append Chinese aliases), the
+`SettingsFileError` banner copy shared with the workspace banner, and the About-page copyright
+line. The shared catalog API is available to both front-ends; TUI text has not yet been
+migrated.
 
 The same preference can be set in `settings.toml`:
 

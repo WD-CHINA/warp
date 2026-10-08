@@ -5,6 +5,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::settings::settings_text;
 use crate::ui_components::dialog::{Dialog, dialog_styles};
 use crate::view_components::action_button::{ActionButton, DangerPrimaryTheme, NakedTheme};
 
@@ -51,28 +52,30 @@ pub enum DestructiveMCPConfirmationDialogVariant {
     Unshare,
 }
 
-impl From<&DestructiveMCPConfirmationDialogVariant>
-    for DestructiveMCPConfirmationDialogDisplayOptions
-{
-    fn from(variant: &DestructiveMCPConfirmationDialogVariant) -> Self {
-        match *variant {
-            DestructiveMCPConfirmationDialogVariant::DeleteLocal => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                "Delete MCP server?".to_string(),
-                "This will uninstall and remove this MCP server from all your devices.".to_string(),
-                "Delete MCP".to_string(),
-                "Cancel".to_string(),
+impl DestructiveMCPConfirmationDialogVariant {
+    fn display_options(&self, app: &AppContext) -> DestructiveMCPConfirmationDialogDisplayOptions {
+        match self {
+            Self::DeleteLocal => DestructiveMCPConfirmationDialogDisplayOptions::new(
+                settings_text("Delete MCP server?", app).to_string(),
+                settings_text(
+                    "This will uninstall and remove this MCP server from all your devices.",
+                    app,
+                )
+                .to_string(),
+                settings_text("Delete MCP", app).to_string(),
+                settings_text("Cancel", app).to_string(),
             ),
-            DestructiveMCPConfirmationDialogVariant::DeleteShared => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                "Delete shared MCP server?".to_string(),
-                "This will not only delete this MCP server for yourself, but also uninstall and remove this MCP server from Warp and across all of your teammates' devices.".to_string(),
-                "Delete MCP".to_string(),
-                "Cancel".to_string(),
+            Self::DeleteShared => DestructiveMCPConfirmationDialogDisplayOptions::new(
+                settings_text("Delete shared MCP server?", app).to_string(),
+                settings_text("This will not only delete this MCP server for yourself, but also uninstall and remove this MCP server from Warp and across all of your teammates' devices.", app).to_string(),
+                settings_text("Delete MCP", app).to_string(),
+                settings_text("Cancel", app).to_string(),
             ),
-            DestructiveMCPConfirmationDialogVariant::Unshare => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                "Remove shared MCP server from team?".to_string(),
-                "This will uninstall and remove this MCP server from Warp and across all of your teammates' devices.".to_string(),
-                "Remove from team".to_string(),
-                "Cancel".to_string(),
+            Self::Unshare => DestructiveMCPConfirmationDialogDisplayOptions::new(
+                settings_text("Remove shared MCP server from team?", app).to_string(),
+                settings_text("This will uninstall and remove this MCP server from Warp and across all of your teammates' devices.", app).to_string(),
+                settings_text("Remove from team", app).to_string(),
+                settings_text("Cancel", app).to_string(),
             ),
         }
     }
@@ -112,7 +115,7 @@ impl DestructiveMCPConfirmationDialog {
         variant: DestructiveMCPConfirmationDialogVariant,
         ctx: &mut ViewContext<Self>,
     ) {
-        let display_options: DestructiveMCPConfirmationDialogDisplayOptions = (&variant).into();
+        let display_options = variant.display_options(ctx);
 
         self.cancel_button.update(ctx, |button, ctx| {
             button.set_label(display_options.cancel_button_label.clone(), ctx);
@@ -148,8 +151,7 @@ impl View for DestructiveMCPConfirmationDialog {
         }
 
         let appearance = Appearance::as_ref(app);
-        let display_options: DestructiveMCPConfirmationDialogDisplayOptions =
-            (&self.variant).into();
+        let display_options = self.variant.display_options(app);
 
         let dialog = Dialog::new(
             display_options.title_text.clone(),

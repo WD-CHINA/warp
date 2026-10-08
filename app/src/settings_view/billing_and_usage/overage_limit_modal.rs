@@ -10,6 +10,7 @@ use warpui::{
 
 use crate::Appearance;
 use crate::editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions};
+use crate::settings::settings_text;
 
 const MAXIMUM_SPENDING_LIMIT_CENTS: u32 = 999999999;
 
@@ -149,14 +150,15 @@ impl SpendingLimitModal {
         ctx.notify();
     }
 
-    fn error_text(&self) -> Option<String> {
+    fn error_text(&self, app: &AppContext) -> Option<String> {
         match self.input_error_state {
             Some(SpendingLimitModalInputErrorState::InvalidNumberFormat) => {
-                Some("Please enter a valid currency amount".to_string())
+                Some(settings_text("Please enter a valid currency amount", app).to_string())
             }
-            Some(SpendingLimitModalInputErrorState::NumberOutOfRange) => {
-                Some("Please enter a price between $0.01 and $10,000,000".to_string())
-            }
+            Some(SpendingLimitModalInputErrorState::NumberOutOfRange) => Some(
+                settings_text("Please enter a price between $0.01 and $10,000,000", app)
+                    .to_string(),
+            ),
             None => None,
         }
     }
@@ -195,7 +197,10 @@ impl View for SpendingLimitModal {
         let theme = appearance.theme();
 
         let description_text = Text::new(
-            "Warp will prevent use of premium models when this dollar limit is reached. Resets on a monthly basis.",
+            settings_text(
+                "Warp will prevent use of premium models when this dollar limit is reached. Resets on a monthly basis.",
+                app,
+            ),
             appearance.ui_font_family(),
             14.,
         )
@@ -203,7 +208,10 @@ impl View for SpendingLimitModal {
         .finish();
 
         let additional_note_text = Text::new(
-            "Note that AI credits made near your chosen limit may exceed it by a few dollars.",
+            settings_text(
+                "Note that AI credits made near your chosen limit may exceed it by a few dollars.",
+                app,
+            ),
             appearance.ui_font_family(),
             12.,
         )
@@ -263,7 +271,7 @@ impl View for SpendingLimitModal {
                 ButtonVariant::Accent,
                 self.update_button_mouse_state.clone(),
             )
-            .with_text_label("Update".to_string())
+            .with_text_label(settings_text("Update", app).to_string())
             .with_style(button_style);
 
         if self.input_error_state.is_some() {
@@ -278,7 +286,7 @@ impl View for SpendingLimitModal {
                         ButtonVariant::Secondary,
                         self.cancel_button_mouse_state.clone(),
                     )
-                    .with_text_label("Cancel".to_string())
+                    .with_text_label(settings_text("Cancel", app).to_string())
                     .with_style(button_style)
                     .build()
                     .on_click(|ctx, _, _| {
@@ -316,7 +324,7 @@ impl View for SpendingLimitModal {
                     .finish(),
             );
 
-        if let Some(error_text) = self.error_text() {
+        if let Some(error_text) = self.error_text(app) {
             let error_text = Text::new(error_text, appearance.ui_font_family(), 12.)
                 .with_color(theme.ui_error_color())
                 .finish();

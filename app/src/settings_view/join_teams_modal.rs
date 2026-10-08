@@ -11,6 +11,7 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use crate::appearance::Appearance;
 use crate::server::ids::ServerId;
+use crate::settings::settings_text;
 use crate::workspaces::team::DiscoverableTeam;
 const SUBTITLE: &str = "You can join any open team in your Warp workspace.";
 const MAX_VISIBLE_TEAMS: usize = 4;
@@ -76,13 +77,14 @@ impl JoinTeamsModal {
         &self,
         team_state: &JoinableTeamState,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let theme = appearance.theme();
         let team_uid = ServerId::from_string_lossy(&team_state.team.team_uid);
         let is_joining = self.joining_team_uid == Some(team_uid);
         let teammate_count = match team_state.team.num_members {
-            1 => "1 teammate".to_string(),
-            count => format!("{count} teammates"),
+            1 => settings_text("1 teammate", app).to_string(),
+            count => settings_text("{count} teammates", app).replace("{count}", &count.to_string()),
         };
 
         let team_details = Flex::column()
@@ -114,9 +116,9 @@ impl JoinTeamsModal {
                 team_state.join_button_mouse_state.clone(),
             )
             .with_centered_text_label(if is_joining {
-                "Joining…".to_string()
+                settings_text("Joining…", app).to_string()
             } else {
-                "Join".to_string()
+                settings_text("Join", app).to_string()
             })
             .with_style(UiComponentStyles {
                 width: Some(88.),
@@ -166,7 +168,7 @@ impl View for JoinTeamsModal {
         let theme = appearance.theme();
         let mut teams = Flex::column().with_spacing(8.);
         for team in &self.teams {
-            teams.add_child(self.render_team(team, appearance));
+            teams.add_child(self.render_team(team, appearance, app));
         }
         let teams = teams.finish();
         let teams = if self.teams.len() > MAX_VISIBLE_TEAMS {
@@ -190,7 +192,7 @@ impl View for JoinTeamsModal {
         Flex::column()
             .with_child(
                 Text::new(
-                    SUBTITLE.to_string(),
+                    settings_text(SUBTITLE, app).to_string(),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )

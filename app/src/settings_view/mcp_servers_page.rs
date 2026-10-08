@@ -18,6 +18,7 @@ use crate::appearance::Appearance;
 use crate::cloud_object::Space;
 use crate::modal::{Modal, ModalViewState};
 use crate::server::cloud_objects::update_manager::InitiatedBy;
+use crate::settings::settings_text;
 use crate::settings_view::SettingsSection;
 use crate::settings_view::mcp_servers::edit_page::{
     MCPServersEditPageView, MCPServersEditPageViewEvent,
@@ -149,8 +150,9 @@ impl MCPServersSettingsPageView {
         ctx: &mut ViewContext<Self>,
     ) {
         let message = match server_name {
-            Some(name) => format!("Successfully logged out of {name} MCP server"),
-            None => "Successfully logged out of MCP server".to_string(),
+            Some(name) => settings_text("Successfully logged out of {name} MCP server", ctx)
+                .replace("{name}", &name),
+            None => settings_text("Successfully logged out of MCP server", ctx).to_string(),
         };
         match item_id {
             ServerCardItemId::TemplatableMCP(_) => {
@@ -316,7 +318,11 @@ impl MCPServersSettingsPageView {
                 "Ignoring MCP deeplink autoinstall for '{autoinstall_param}': installation modal already open"
             );
             self.add_error_toast(
-                "Finish the current MCP install before opening another install link.".to_string(),
+                settings_text(
+                    "Finish the current MCP install before opening another install link.",
+                    ctx,
+                )
+                .to_string(),
                 ctx,
             );
             return;
@@ -331,7 +337,11 @@ impl MCPServersSettingsPageView {
             log::warn!(
                 "Unrecognized autoinstall value '{autoinstall_param}': no matching gallery item found"
             );
-            self.add_error_toast(format!("Unknown MCP server '{autoinstall_param}'"), ctx);
+            self.add_error_toast(
+                settings_text("Unknown MCP server '{autoinstall_param}'", ctx)
+                    .replace("{autoinstall_param}", autoinstall_param),
+                ctx,
+            );
             return;
         };
 
@@ -359,7 +369,11 @@ impl MCPServersSettingsPageView {
             // gallery entry cannot be turned into a valid template. Surface the
             // failure to the user rather than silently returning.
             self.add_error_toast(
-                format!("MCP server '{gallery_title}' cannot be installed from this link."),
+                settings_text(
+                    "MCP server '{gallery_title}' cannot be installed from this link.",
+                    ctx,
+                )
+                .replace("{gallery_title}", &gallery_title),
                 ctx,
             );
             return;
@@ -519,9 +533,9 @@ impl View for MCPServersSettingsPageView {
         "MCPServersSettingsPageView"
     }
 
-    fn render(&self, _app: &AppContext) -> Box<dyn Element> {
+    fn render(&self, app: &AppContext) -> Box<dyn Element> {
         match self.current_page {
-            MCPServersSettingsPage::List => self.page.render(self, _app),
+            MCPServersSettingsPage::List => self.page.render(self, app),
             MCPServersSettingsPage::Edit { item_id: _ } => {
                 // The edit view needs to be constrained so we will render it directly
                 // instead of rendering inside the settings widget
@@ -572,7 +586,7 @@ impl SettingsWidget for MCPServersSettingsWidget {
     type View = MCPServersSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "mcp servers"
+        "mcp servers mcp 服务器 服务器 添加 MCP 服务器"
     }
 
     fn render(

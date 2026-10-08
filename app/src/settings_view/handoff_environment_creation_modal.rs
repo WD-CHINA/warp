@@ -16,6 +16,7 @@ use crate::appearance::Appearance;
 use crate::modal::MODAL_BACKDROP_OPACITY;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ClientId, SyncId};
+use crate::settings::settings_text;
 use crate::settings_view::update_environment_form::{
     EnvironmentFormInitArgs, UpdateEnvironmentForm, UpdateEnvironmentFormEvent,
 };
@@ -116,7 +117,7 @@ impl HandoffEnvironmentCreationModal {
                 let Some(owner) = owner else {
                     report_error!("Unable to create environment: not logged in");
                     ctx.emit(HandoffEnvironmentCreationModalEvent::CreationFailed {
-                        error_message: "Not logged in".to_string(),
+                        error_message: settings_text("Not logged in", ctx).to_string(),
                     });
                     return;
                 };
@@ -195,7 +196,7 @@ impl HandoffEnvironmentCreationModal {
             .finish();
 
         let dialog = Dialog::new(
-            "Create environment".to_string(),
+            settings_text("Create environment", app).to_string(),
             None,
             dialog_styles(appearance),
         )

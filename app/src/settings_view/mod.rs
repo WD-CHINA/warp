@@ -1364,7 +1364,7 @@ impl SettingsView {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Search", ctx);
+            editor.set_placeholder_text(settings_text("Search", ctx), ctx);
             editor
         });
 
@@ -2417,7 +2417,11 @@ impl SettingsView {
         .finish()
     }
 
-    fn render_search_zero_state(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_search_zero_state(
+        &self,
+        appearance: &Appearance,
+        ctx: &AppContext,
+    ) -> Box<dyn Element> {
         let theme = appearance.theme();
         Container::new(
             Align::new(
@@ -2425,7 +2429,7 @@ impl SettingsView {
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
                     .with_children([
                         Text::new(
-                            "No settings match your search.",
+                            settings_text("No settings match your search.", ctx),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -2433,7 +2437,10 @@ impl SettingsView {
                         .with_color(theme.sub_text_color(theme.background()).into_solid())
                         .finish(),
                         Text::new(
-                            "You may want to try using different keywords or checking for any possible typos.",
+                            settings_text(
+                                "You may want to try using different keywords or checking for any possible typos.",
+                                ctx,
+                            ),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -2481,7 +2488,7 @@ impl View for SettingsView {
         let appearance = Appearance::as_ref(app);
 
         let (page, current_page_handle) = if settings_pages.is_empty() {
-            (self.render_search_zero_state(appearance), None)
+            (self.render_search_zero_state(appearance, app), None)
         } else {
             match settings_pages
                 .iter()
@@ -2611,6 +2618,7 @@ impl View for SettingsView {
             self.settings_file_error.as_ref(),
             AISettings::as_ref(app).is_any_ai_enabled(app),
             &self.footer_mouse_states,
+            app,
         );
 
         let scrollable = Container::new(

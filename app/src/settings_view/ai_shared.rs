@@ -30,6 +30,7 @@ use super::settings_page::{
 use crate::ai::blocklist::agent_view::agent_input_footer::editor::AgentToolbarInlineEditor;
 use crate::appearance::Appearance;
 use crate::editor::{EditorView, InteractionState};
+use crate::settings::settings_text;
 
 pub fn should_show_mcp_servers() -> bool {
     FeatureFlag::McpServer.is_enabled() && ContextFlag::ShowMCPServers.is_enabled()
@@ -57,11 +58,12 @@ pub fn update_editor_interaction_state<V: View>(
 pub fn render_toolbar_layout_editor(
     editor: &ViewHandle<AgentToolbarInlineEditor>,
     appearance: &Appearance,
+    app: &warpui::AppContext,
 ) -> Box<dyn Element> {
     let label = Container::new(
         appearance
             .ui_builder()
-            .span("Toolbar layout".to_string())
+            .span(settings_text("Toolbar layout", app).to_string())
             .with_style(UiComponentStyles {
                 font_size: Some(CONTENT_FONT_SIZE),
                 ..Default::default()

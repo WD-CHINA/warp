@@ -20,7 +20,7 @@ use super::settings_page::{
     SettingsWidget, render_dropdown_item,
 };
 use crate::auth::{AuthManager, AuthStateProvider};
-use crate::settings::{AISettings, AISettingsChangedEvent, UsageDisplayUnit};
+use crate::settings::{AISettings, AISettingsChangedEvent, UsageDisplayUnit, settings_text};
 use crate::view_components::{Dropdown, DropdownItem};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{ChargeUnit, Workspace};
@@ -56,7 +56,7 @@ impl BillingAndUsageDispatchView {
                     .into_iter()
                     .map(|value| {
                         DropdownItem::new(
-                            value.display_name(),
+                            settings_text(value.display_name(), ctx),
                             BillingAndUsageDispatchAction::SetUsageDisplayUnit(value),
                         )
                     })
@@ -100,7 +100,11 @@ impl BillingAndUsageDispatchView {
             }
         });
 
-        let page = PageType::new_monolith(BillingAndUsageWidget, Some("Billing and Usage"), true);
+        let page = PageType::new_monolith(
+            BillingAndUsageWidget,
+            Some(settings_text("Billing and Usage", ctx)),
+            true,
+        );
 
         Self {
             page,
@@ -224,7 +228,7 @@ impl SettingsWidget for BillingAndUsageWidget {
     type View = BillingAndUsageDispatchView;
 
     fn search_terms(&self) -> &str {
-        "plan billing a.i. ai usage limit credits dollars cost spend display unit balance overview"
+        "plan billing a.i. ai usage limit credits dollars cost spend display unit balance overview 账单 计费 用量 额度 积分 美元 费用 支出 显示单位 余额 概览 套餐"
     }
 
     fn render(
@@ -250,8 +254,11 @@ impl SettingsWidget for BillingAndUsageWidget {
             page.add_child(
                 Container::new(render_dropdown_item(
                     appearance,
-                    "Usage display unit",
-                    Some("Select the unit for usage and spend amounts."),
+                    settings_text("Usage display unit", app),
+                    Some(settings_text(
+                        "Select the unit for usage and spend amounts.",
+                        app,
+                    )),
                     None,
                     LocalOnlyIconState::for_setting(
                         UsageDisplayUnit::storage_key(),

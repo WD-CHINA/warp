@@ -8,6 +8,7 @@ use crate::appearance::Appearance;
 use crate::editor::{EditorView, Event, SingleLineEditorOptions, TextOptions};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
+use crate::settings::settings_text;
 use crate::terminal::available_shells::{AvailableShell, AvailableShells};
 use crate::terminal::local_tty::shell::is_valid_path_or_command_for_supported_shell;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
@@ -94,7 +95,7 @@ impl StartupShellView {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Executable path", ctx);
+            editor.set_placeholder_text(settings_text("Executable path", ctx), ctx);
 
             if let Some(shell) = custom_shell_text.as_ref() {
                 editor.set_buffer_text(shell, ctx);
@@ -133,7 +134,7 @@ impl StartupShellView {
     ) {
         dropdown.update(ctx, |dropdown, ctx| {
             let mut items = vec![DropdownItem::new(
-                "Default",
+                settings_text("Default", ctx),
                 NewSessionShellAction::Set(AvailableShell::default()),
             )];
             let shell_to_index = AvailableShells::handle(ctx).read(ctx, |model, _| {
@@ -151,7 +152,7 @@ impl StartupShellView {
             });
 
             items.push(DropdownItem::new(
-                "Custom",
+                settings_text("Custom", ctx),
                 NewSessionShellAction::ShowCustomPathInput,
             ));
             let custom_index = items.len() - 1;

@@ -45,6 +45,7 @@ use crate::persistence::ModelEvent;
 use crate::persistence::{database_file_path_for_current_scope, establish_ro_connection};
 use crate::server::cloud_objects::update_manager::InitiatedBy;
 use crate::server::telemetry::{MCPTemplateCreationSource, TelemetryEvent};
+use crate::settings::settings_text;
 use crate::settings_view::mcp_servers::destructive_mcp_confirmation_dialog::{
     DestructiveMCPConfirmationDialog, DestructiveMCPConfirmationDialogEvent,
     DestructiveMCPConfirmationDialogVariant,
@@ -132,30 +133,30 @@ pub struct MCPServersEditPageView {
 
 impl MCPServersEditPageView {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        let save_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Save", PrimaryTheme)
+        let save_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Save", ctx), PrimaryTheme)
                 .with_icon(Icon::Check)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Save);
                 })
         });
 
-        let reinstall_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Edit Variables", PrimaryTheme).on_click(|ctx| {
+        let reinstall_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Edit Variables", ctx), PrimaryTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(MCPServersEditPageViewAction::Reinstall);
             })
         });
 
-        let delete_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Delete MCP", DangerSecondaryTheme)
+        let delete_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Delete MCP", ctx), DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Delete);
                 })
         });
 
-        let unshare_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Remove from team", DangerNakedTheme)
+        let unshare_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Remove from team", ctx), DangerNakedTheme)
                 .with_icon(Icon::MinusCircle)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Unshare);
@@ -186,10 +187,11 @@ impl MCPServersEditPageView {
             me.handle_delete_confirmation_event(event, ctx);
         });
 
-        let editing_disabled_banner = ctx.add_typed_action_view(|_| {
-            Banner::new_without_close(BannerTextContent::plain_text(
+        let editing_disabled_banner = ctx.add_typed_action_view(|ctx| {
+            Banner::new_without_close(BannerTextContent::plain_text(settings_text(
                 "Only team admins and the creator of the MCP server can edit the MCP server.",
-            ))
+                ctx,
+            )))
             .with_icon(Icon::Warning)
         });
 
@@ -314,21 +316,27 @@ impl MCPServersEditPageView {
     fn render_header(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let title = if self.server_card_item_id.is_none() {
-            "Add New MCP Server".to_string()
+            settings_text("Add New MCP Server", app).to_string()
         } else if let Some(name) = self.server_model.name() {
-            format!("Edit {name} MCP Server")
+            settings_text("Edit {name} MCP Server", app).replace("{name}", &name)
         } else {
-            "Edit MCP Server".to_string()
+            settings_text("Edit MCP Server", app).to_string()
         };
 
         let ui_builder = appearance.ui_builder().clone();
+        let log_out_tooltip = settings_text("Log out", app).to_string();
         let log_out_icon_button = icon_button(
             appearance,
             Icon::LogOut,
             false,
             self.log_out_icon_button_mouse_handle.clone(),
         )
-        .with_tooltip(move || ui_builder.tool_tip("Log out".to_string()).build().finish())
+        .with_tooltip(move || {
+            ui_builder
+                .tool_tip(log_out_tooltip.clone())
+                .build()
+                .finish()
+        })
         .build()
         .on_click(|ctx, _, _| ctx.dispatch_typed_action(MCPServersEditPageViewAction::LogOut))
         .finish();
@@ -543,15 +551,20 @@ impl MCPServersEditPageView {
             !find_secrets_in_text(&templatable_mcp_server.template.json).is_empty();
 
         if should_block_save_for_secrets(safe_mode_enabled, enterprise_enforced, contains_secrets) {
+            let message = settings_text(
+                "This MCP server contains secrets. Visit Settings > Privacy to modify your secret redaction settings.",
+                ctx,
+            )
+            .to_string();
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error("This MCP server contains secrets. Visit Settings > Privacy to modify your secret redaction settings.".to_string()),
+                    DismissibleToast::error(message.clone()),
                     window_id,
                     ctx,
                 );
             });
-            return Err("This MCP server contains secrets. Visit Settings > Privacy to modify your secret redaction settings.".to_string());
+            return Err(message);
         }
 
         Ok(())
@@ -603,34 +616,35 @@ impl MCPServersEditPageView {
         let parsed_templatable_mcp_servers = self.parse_templatable_json(ctx, json);
 
         if parsed_templatable_mcp_servers.is_empty() {
+            let message = settings_text("No MCP Server specified.", ctx).to_string();
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error("No MCP Server specified.".to_string()),
+                    DismissibleToast::error(message.clone()),
                     window_id,
                     ctx,
                 );
             });
 
-            return Err("No MCP Server specified.".to_string());
+            return Err(message);
         }
 
         if parsed_templatable_mcp_servers.len() > 1 {
+            let message = settings_text(
+                "Cannot add multiple MCP servers while editing a single server.",
+                ctx,
+            )
+            .to_string();
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error(
-                        "Cannot add multiple MCP servers while editing a single server."
-                            .to_string(),
-                    ),
+                    DismissibleToast::error(message.clone()),
                     window_id,
                     ctx,
                 );
             });
 
-            return Err(
-                "Cannot add multiple MCP servers while editing a single server.".to_string(),
-            );
+            return Err(message);
         }
 
         Ok(parsed_templatable_mcp_servers[0].clone())
@@ -905,7 +919,9 @@ impl TypedActionView for MCPServersEditPageView {
                         let window_id = ctx.window_id();
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error("No MCP Server specified.".to_string()),
+                                DismissibleToast::error(
+                                    settings_text("No MCP Server specified.", ctx).to_string(),
+                                ),
                                 window_id,
                                 ctx,
                             );

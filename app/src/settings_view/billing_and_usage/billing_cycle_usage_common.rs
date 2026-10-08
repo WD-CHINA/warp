@@ -5,14 +5,15 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use thousands::Separable;
 use warp_core::ui::appearance::Appearance;
-use warpui::Element;
 use warpui::elements::{
     Align, Border, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, DropShadow, Empty,
     Flex, MainAxisAlignment, MainAxisSize, MouseStateHandle, ParentElement, Radius, Shrinkable,
     Text,
 };
 use warpui::fonts::{Properties, Weight};
+use warpui::{AppContext, Element};
 
+use crate::settings::settings_text;
 use crate::settings_view::billing_and_usage_page_v2::{
     AGGREGATE_CREDITS_DOT_COLOR, AMBIENT_CREDITS_DOT_COLOR, BASE_CREDITS_DOT_COLOR,
     BONUS_CREDITS_DOT_COLOR, PAYG_CREDITS_DOT_COLOR,
@@ -293,6 +294,7 @@ pub fn render_breakdown_tooltip(
     total_credits: i64,
     total_cost_cents: i64,
     appearance: &Appearance,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     let theme = appearance.theme();
     let font_family = appearance.ui_font_family();
@@ -306,12 +308,12 @@ pub fn render_breakdown_tooltip(
 
     for line in segments {
         let label = if matches!(line.usage_bucket, AiCreditsUsageBucket::Aggregate) {
-            cost_type_label(&line.cost_type).to_string()
+            settings_text(cost_type_label(&line.cost_type), app).to_string()
         } else {
             format!(
                 "{} ({})",
-                cost_type_label(&line.cost_type),
-                bucket_label(&line.usage_bucket)
+                settings_text(cost_type_label(&line.cost_type), app),
+                settings_text(bucket_label(&line.usage_bucket), app)
             )
         };
 
@@ -337,7 +339,7 @@ pub fn render_breakdown_tooltip(
 
     column.add_child(render_tooltip_row(
         /* no swatch on the total row */ None,
-        "Total usage".to_string(),
+        settings_text("Total usage", app).to_string(),
         total_credits,
         total_cost_cents,
         main,

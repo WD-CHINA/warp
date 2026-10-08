@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::ops::Not;
 #[cfg(feature = "local_fs")]
 use std::path::PathBuf;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use ::ai::api_keys::{
@@ -102,7 +101,7 @@ use crate::settings::{
     PromptSubmissionMode, SharedBlockTitleGenerationEnabled,
     ShouldRenderUseAgentToolbarForUserCommands, ShouldShowOzUpdatesInZeroState, ShowAgentTips,
     ShowConversationHistory, ShowHintText, ThinkingDisplayMode, VOICE_INPUT_LANGUAGES,
-    VoiceInputEnabled, VoiceInputLanguage, VoiceInputToggleKey,
+    VoiceInputEnabled, VoiceInputLanguage, VoiceInputToggleKey, settings_text,
 };
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
@@ -840,7 +839,7 @@ impl WarpAgentPageView {
             };
             let mut editor = EditorView::new(options, ctx);
 
-            editor.set_placeholder_text("Commands, comma separated", ctx);
+            editor.set_placeholder_text(settings_text("Commands, comma separated", ctx), ctx);
 
             let current_value = AISettings::as_ref(ctx)
                 .autodetection_command_denylist
@@ -980,8 +979,8 @@ impl WarpAgentPageView {
         #[cfg(feature = "local_fs")]
         let router_views = Self::create_router_views(ctx);
         #[cfg(feature = "local_fs")]
-        let add_router_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("+ Add router", SecondaryTheme)
+        let add_router_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("+ Add router", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::OpenAddCustomRouter);
@@ -997,8 +996,8 @@ impl WarpAgentPageView {
         }
 
         let custom_inference_controls_enabled = Self::can_use_custom_inference_controls(ctx);
-        let custom_inference_add_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("+ Add custom model", SecondaryTheme)
+        let custom_inference_add_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("+ Add custom model", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::OpenAddCustomEndpointModal);
@@ -1016,7 +1015,7 @@ impl WarpAgentPageView {
 
         let custom_endpoint_modal_view = ctx.add_typed_action_view(|ctx| {
             Modal::new(
-                Some("Add custom endpoint".to_string()),
+                Some(settings_text("Add custom endpoint", ctx).to_string()),
                 custom_endpoint_modal_body.clone(),
                 ctx,
             )
@@ -1062,7 +1061,7 @@ impl WarpAgentPageView {
         });
         let set_default_model_modal_view = ctx.add_typed_action_view(|ctx| {
             Modal::new(
-                Some("Change your default model?".to_string()),
+                Some(settings_text("Change your default model?", ctx).to_string()),
                 set_default_model_modal_body.clone(),
                 ctx,
             )
@@ -1117,11 +1116,11 @@ impl WarpAgentPageView {
 
             let items = vec![
                 DropdownItem::new(
-                    "New Tab",
+                    settings_text("New Tab", ctx),
                     WarpAgentPageAction::SetConversationLayout(OpenConversationPreference::NewTab),
                 ),
                 DropdownItem::new(
-                    "Split Pane",
+                    settings_text("Split Pane", ctx),
                     WarpAgentPageAction::SetConversationLayout(
                         OpenConversationPreference::SplitPane,
                     ),
@@ -1132,9 +1131,11 @@ impl WarpAgentPageView {
             let current = *crate::util::file::external_editor::EditorSettings::as_ref(ctx)
                 .open_conversation_layout_preference;
             match current {
-                OpenConversationPreference::NewTab => dropdown.set_selected_by_name("New Tab", ctx),
+                OpenConversationPreference::NewTab => {
+                    dropdown.set_selected_by_name(settings_text("New Tab", ctx), ctx)
+                }
                 OpenConversationPreference::SplitPane => {
-                    dropdown.set_selected_by_name("Split Pane", ctx)
+                    dropdown.set_selected_by_name(settings_text("Split Pane", ctx), ctx)
                 }
             };
             dropdown
@@ -1200,8 +1201,11 @@ impl WarpAgentPageView {
                     crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             crate::view_components::DismissibleToast::error(
-                                "Couldn't disconnect your ChatGPT subscription. Please try again."
-                                    .to_string(),
+                                settings_text(
+                                    "Couldn't disconnect your ChatGPT subscription. Please try again.",
+                                    ctx,
+                                )
+                                .to_string(),
                             ),
                             window_id,
                             ctx,
@@ -1303,7 +1307,7 @@ impl WarpAgentPageView {
                 let window_id = ctx.window_id();
                 crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = crate::view_components::DismissibleToast::success(
-                        "Default model updated".to_string(),
+                        settings_text("Default model updated", ctx).to_string(),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -1435,11 +1439,14 @@ impl WarpAgentPageView {
         }
         let provider_name = provider.display_name();
         let current_default = Self::active_base_model_display_name(ctx);
-        let description = format!(
+        let description = settings_text(
             "You added your own {provider_name} API key, but your default model is currently set \
              to {current_default}, which won't work without Warp credits. Would you like to change \
-             your default model?"
-        );
+             your default model?",
+            ctx,
+        )
+        .replace("{provider_name}", provider_name)
+        .replace("{current_default}", &current_default);
         self.show_set_default_model_modal(description, choices, ctx);
     }
 
@@ -1480,12 +1487,14 @@ impl WarpAgentPageView {
             return;
         }
         let current_default = Self::active_base_model_display_name(ctx);
-        let description = format!(
-            "You added the \"{}\" custom endpoint, but your default model is currently set to \
-             {current_default}, which won't work without Warp credits. Would you like to change \
+        let description = settings_text(
+            "You added the \"{endpoint}\" custom endpoint, but your default model is currently set \
+             to {current_default}, which won't work without Warp credits. Would you like to change \
              your default model?",
-            endpoint.name
-        );
+            ctx,
+        )
+        .replace("{endpoint}", &endpoint.name)
+        .replace("{current_default}", &current_default);
         self.show_set_default_model_modal(description, choices, ctx);
     }
 
@@ -1516,8 +1525,8 @@ impl WarpAgentPageView {
     ) -> Vec<ViewHandle<ActionButton>> {
         (0..count)
             .map(|index| {
-                let button = ctx.add_typed_action_view(move |_| {
-                    ActionButton::new("Edit", SecondaryTheme)
+                let button = ctx.add_typed_action_view(move |ctx| {
+                    ActionButton::new(settings_text("Edit", ctx), SecondaryTheme)
                         .with_icon(Icon::Pencil)
                         .with_size(ButtonSize::Small)
                         .on_click(move |ctx| {
@@ -1558,8 +1567,10 @@ impl WarpAgentPageView {
             });
         self.pending_remove_custom_endpoint_index = None;
 
-        self.custom_endpoint_modal_state
-            .set_title(Some("Add custom endpoint".to_string()), ctx);
+        self.custom_endpoint_modal_state.set_title(
+            Some(settings_text("Add custom endpoint", ctx).to_string()),
+            ctx,
+        );
         self.custom_endpoint_modal_state.prefill(None, None, ctx);
         self.custom_endpoint_modal_state.open(ctx);
         ctx.emit(WarpAgentPageEvent::ShowModal);
@@ -1584,8 +1595,10 @@ impl WarpAgentPageView {
             });
         self.pending_remove_custom_endpoint_index = None;
 
-        self.custom_endpoint_modal_state
-            .set_title(Some("Edit custom endpoint".to_string()), ctx);
+        self.custom_endpoint_modal_state.set_title(
+            Some(settings_text("Edit custom endpoint", ctx).to_string()),
+            ctx,
+        );
         self.custom_endpoint_modal_state
             .prefill(endpoint.as_ref(), Some(index), ctx);
         self.custom_endpoint_modal_state.open(ctx);
@@ -1650,7 +1663,7 @@ impl WarpAgentPageView {
                 let window_id = ctx.window_id();
                 crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = crate::view_components::DismissibleToast::success(
-                        "Endpoint added".to_string(),
+                        settings_text("Endpoint added", ctx).to_string(),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -1695,7 +1708,7 @@ impl WarpAgentPageView {
                 let window_id = ctx.window_id();
                 crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = crate::view_components::DismissibleToast::success(
-                        "Endpoint saved".to_string(),
+                        settings_text("Endpoint saved", ctx).to_string(),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -1783,7 +1796,7 @@ impl WarpAgentPageView {
                 let window_id = ctx.window_id();
                 crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = crate::view_components::DismissibleToast::success(
-                        "Endpoint removed".to_string(),
+                        settings_text("Endpoint removed", ctx).to_string(),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -1806,7 +1819,7 @@ impl WarpAgentPageView {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Paste sign-in code", ctx);
+            editor.set_placeholder_text(settings_text("Paste sign-in code", ctx), ctx);
             editor
         })
     }
@@ -1844,8 +1857,10 @@ impl WarpAgentPageView {
                 );
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast =
-                        DismissibleToast::error(format!("Couldn't start Grok login: {err}"));
+                    let toast = DismissibleToast::error(
+                        settings_text("Couldn't start Grok login: {error}", ctx)
+                            .replace("{error}", &err.to_string()),
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
                 return;
@@ -1870,11 +1885,15 @@ impl WarpAgentPageView {
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             let toast = DismissibleToast::default(
-                "Opening your browser to connect your SuperGrok subscription…".to_string(),
+                settings_text(
+                    "Opening your browser to connect your SuperGrok subscription…",
+                    ctx,
+                )
+                .to_string(),
             )
             .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string())
             .with_link(
-                ToastLink::new("Copy URL".to_string())
+                ToastLink::new(settings_text("Copy URL", ctx).to_string())
                     .with_onclick_action(WorkspaceAction::CopyTextToClipboard(authorize_url)),
             );
             toast_stack.add_persistent_toast(toast, window_id, ctx);
@@ -1949,8 +1968,11 @@ impl WarpAgentPageView {
                     let window_id = ctx.window_id();
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(format!("Couldn't connect SuperGrok: {err}"))
-                                .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
+                            DismissibleToast::error(
+                                settings_text("Couldn't connect SuperGrok: {error}", ctx)
+                                    .replace("{error}", &err.to_string()),
+                            )
+                            .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
                             window_id,
                             ctx,
                         );
@@ -1988,15 +2010,19 @@ impl WarpAgentPageView {
                     let window_id = ctx.window_id();
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         let toast = DismissibleToast::default(
-                            "Opening your browser to connect your ChatGPT subscription. You may \
-                             be asked to sign in to Warp first…"
-                                .to_string(),
+                            settings_text(
+                                "Opening your browser to connect your ChatGPT subscription. You \
+                                 may be asked to sign in to Warp first…",
+                                ctx,
+                            )
+                            .to_string(),
                         )
                         .with_object_id(CHATGPT_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string())
                         .with_link(
-                            ToastLink::new("Copy URL".to_string()).with_onclick_action(
-                                WorkspaceAction::CopyTextToClipboard(authorize_url),
-                            ),
+                            ToastLink::new(settings_text("Copy URL", ctx).to_string())
+                                .with_onclick_action(WorkspaceAction::CopyTextToClipboard(
+                                    authorize_url,
+                                )),
                         );
                         toast_stack.add_persistent_toast(toast, window_id, ctx);
                     });
@@ -2008,9 +2034,12 @@ impl WarpAgentPageView {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Couldn't start connecting your ChatGPT subscription. Please \
-                                 try again."
-                                    .to_string(),
+                                settings_text(
+                                    "Couldn't start connecting your ChatGPT subscription. Please \
+                                     try again.",
+                                    ctx,
+                                )
+                                .to_string(),
                             )
                             .with_object_id(CHATGPT_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
                             window_id,
@@ -2095,27 +2124,32 @@ impl WarpAgentPageView {
 
         self.chatgpt_oauth_attempt = None;
         let message = match failure {
-            ChatGPTConnectFailure::AlreadyLinked => {
+            ChatGPTConnectFailure::AlreadyLinked => settings_text(
                 "Couldn't connect your ChatGPT subscription. That ChatGPT account is already \
                  connected to a different Warp account, or this Warp account already has a \
-                 ChatGPT account connected. Disconnect it first, then try again."
-            }
-            ChatGPTConnectFailure::EmailUnverified => {
+                 ChatGPT account connected. Disconnect it first, then try again.",
+                ctx,
+            ),
+            ChatGPTConnectFailure::EmailUnverified => settings_text(
                 "Couldn't connect your ChatGPT subscription. Verify the email on your ChatGPT \
-                 account with OpenAI, then try again."
-            }
-            ChatGPTConnectFailure::Denied => {
+                 account with OpenAI, then try again.",
+                ctx,
+            ),
+            ChatGPTConnectFailure::Denied => settings_text(
                 "ChatGPT subscription not connected. Warp needs your permission in the browser \
-                 to use your plan."
-            }
-            ChatGPTConnectFailure::AccountMismatch => {
+                 to use your plan.",
+                ctx,
+            ),
+            ChatGPTConnectFailure::AccountMismatch => settings_text(
                 "Couldn't connect your ChatGPT subscription. Your browser is signed in to a \
                  different Warp account than this one. Sign in to this account in the browser, \
-                 then try again."
-            }
-            ChatGPTConnectFailure::Unknown => {
-                "Couldn't connect your ChatGPT subscription. Please try again."
-            }
+                 then try again.",
+                ctx,
+            ),
+            ChatGPTConnectFailure::Unknown => settings_text(
+                "Couldn't connect your ChatGPT subscription. Please try again.",
+                ctx,
+            ),
         };
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
@@ -2181,8 +2215,10 @@ impl WarpAgentPageView {
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
-                DismissibleToast::success("SuperGrok subscription connected".to_string())
-                    .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
+                DismissibleToast::success(
+                    settings_text("SuperGrok subscription connected", ctx).to_string(),
+                )
+                .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
                 window_id,
                 ctx,
             );
@@ -2270,9 +2306,10 @@ impl WarpAgentPageView {
                         let window_id = ctx.window_id();
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(format!(
-                                    "Couldn't connect SuperGrok: {err}"
-                                ))
+                                DismissibleToast::error(
+                                    settings_text("Couldn't connect SuperGrok: {error}", ctx)
+                                        .replace("{error}", &err.to_string()),
+                                )
                                 .with_object_id(GROK_OAUTH_CONNECT_TOAST_OBJECT_ID.to_string()),
                                 window_id,
                                 ctx,
@@ -3162,7 +3199,7 @@ impl TypedActionView for WarpAgentPageView {
                 let window_id = ctx.window_id();
                 crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = crate::view_components::DismissibleToast::default(
-                        "SuperGrok subscription disconnected".to_string(),
+                        settings_text("SuperGrok subscription disconnected", ctx).to_string(),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -3234,7 +3271,7 @@ fn render_global_ai_toggle(
             Container::new(
                 ConstrainedBox::new(
                     Container::new(
-                        Text::new("Your organization disallows AI when the active pane contains content from a remote session", appearance.ui_font_family(), 12.)
+                        Text::new(settings_text("Your organization disallows AI when the active pane contains content from a remote session", app), appearance.ui_font_family(), 12.)
                             .with_color(appearance.theme().ui_warning_color())
                             .finish()
                     )
@@ -3258,7 +3295,7 @@ fn render_global_ai_toggle(
                 .with_child(
                     Container::new(
                         Text::new_inline(
-                            "To use AI features, please create an account.",
+                            settings_text("To use AI features, please create an account.", app),
                             appearance.ui_font_family(),
                             14.,
                         )
@@ -3289,7 +3326,7 @@ fn render_global_ai_toggle(
                                 }),
                                 ..Default::default()
                             })
-                            .with_text_label("Sign up".to_owned())
+                            .with_text_label(settings_text("Sign up", app).to_owned())
                             .build()
                             .on_click(move |ctx, _, _| {
                                 ctx.dispatch_typed_action(WarpAgentPageAction::SignupAnonymousUser);
@@ -3400,7 +3437,7 @@ impl SettingsWidget for NextCommandWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. next command suggestions"
+        "active ai a.i. next command suggestions 下一条命令 AI 建议 命令历史 输出 工作流"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3419,7 +3456,7 @@ impl SettingsWidget for NextCommandWidget {
         Flex::column()
             .with_child(
                 render_ai_setting_toggle::<IntelligentAutosuggestionsEnabled>(
-                    "Next Command",
+                    settings_text("Next Command", app),
                     WarpAgentPageAction::ToggleIntelligentAutosuggestions,
                     *ai_settings.intelligent_autosuggestions_enabled_internal,
                     is_toggleable,
@@ -3429,7 +3466,7 @@ impl SettingsWidget for NextCommandWidget {
                 ),
             )
             .with_child(render_ai_setting_description(
-                NEXT_COMMAND_DESCRIPTION,
+                settings_text(NEXT_COMMAND_DESCRIPTION, app),
                 is_toggleable,
                 app,
             ))
@@ -3446,7 +3483,7 @@ impl SettingsWidget for PromptSuggestionsWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. prompt suggestions"
+        "active ai a.i. prompt suggestions 提示建议 AI 自然语言提示 内联横幅 输入"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3464,7 +3501,7 @@ impl SettingsWidget for PromptSuggestionsWidget {
         Flex::column()
             .with_child(
                 render_ai_setting_toggle::<AgentModeQuerySuggestionsEnabled>(
-                    "Prompt Suggestions",
+                    settings_text("Prompt Suggestions", app),
                     WarpAgentPageAction::TogglePromptSuggestions,
                     *ai_settings.prompt_suggestions_enabled_internal,
                     is_toggleable,
@@ -3474,7 +3511,7 @@ impl SettingsWidget for PromptSuggestionsWidget {
                 ),
             )
             .with_child(render_ai_setting_description(
-                PROMPT_SUGGESTIONS_DESCRIPTION,
+                settings_text(PROMPT_SUGGESTIONS_DESCRIPTION, app),
                 is_toggleable,
                 app,
             ))
@@ -3491,7 +3528,7 @@ impl SettingsWidget for SuggestedCodeBannersWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. code diffs suggested banners"
+        "active ai a.i. code diffs suggested banners 建议代码横幅 代码差异 内联横幅 查询"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3509,7 +3546,7 @@ impl SettingsWidget for SuggestedCodeBannersWidget {
         Flex::column()
             .with_child(
                 render_ai_setting_toggle::<AgentModeQuerySuggestionsEnabled>(
-                    "Suggested Code Banners",
+                    settings_text("Suggested Code Banners", app),
                     WarpAgentPageAction::ToggleCodeSuggestions,
                     *ai_settings.code_suggestions_enabled_internal,
                     is_toggleable,
@@ -3519,7 +3556,7 @@ impl SettingsWidget for SuggestedCodeBannersWidget {
                 ),
             )
             .with_child(render_ai_setting_description(
-                SUGGESTED_CODE_BANNERS_DESCRIPTION,
+                settings_text(SUGGESTED_CODE_BANNERS_DESCRIPTION, app),
                 is_toggleable,
                 app,
             ))
@@ -3536,7 +3573,7 @@ impl SettingsWidget for NaturalLanguageAutosuggestionsWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. natural language autosuggestions passive"
+        "active ai a.i. natural language autosuggestions passive 自然语言自动建议 自动补全"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3555,7 +3592,7 @@ impl SettingsWidget for NaturalLanguageAutosuggestionsWidget {
             .with_child(render_ai_setting_toggle::<
                 NaturalLanguageAutosuggestionsEnabled,
             >(
-                "Natural Language Autosuggestions",
+                settings_text("Natural Language Autosuggestions", app),
                 WarpAgentPageAction::ToggleNaturalLanguageAutosuggestions,
                 *ai_settings.natural_language_autosuggestions_enabled_internal,
                 is_toggleable,
@@ -3564,7 +3601,7 @@ impl SettingsWidget for NaturalLanguageAutosuggestionsWidget {
                 app,
             ))
             .with_child(render_ai_setting_description(
-                NATURAL_LANGUAGE_AUTOSUGGESTIONS,
+                settings_text(NATURAL_LANGUAGE_AUTOSUGGESTIONS, app),
                 is_toggleable,
                 app,
             ))
@@ -3590,7 +3627,7 @@ impl SettingsWidget for SharedBlockTitleGenerationWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. shared block title generation"
+        "active ai a.i. shared block title generation 共享区块标题生成 标题"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3608,7 +3645,7 @@ impl SettingsWidget for SharedBlockTitleGenerationWidget {
         Flex::column()
             .with_child(
                 render_ai_setting_toggle::<SharedBlockTitleGenerationEnabled>(
-                    "Shared Block Title Generation",
+                    settings_text("Shared Block Title Generation", app),
                     WarpAgentPageAction::ToggleSharedTitleGeneration,
                     *ai_settings.shared_block_title_generation_enabled_internal,
                     is_toggleable,
@@ -3618,7 +3655,7 @@ impl SettingsWidget for SharedBlockTitleGenerationWidget {
                 ),
             )
             .with_child(render_ai_setting_description(
-                SHARED_BLOCK_TITLE_GENERATION_DESCRIPTION,
+                settings_text(SHARED_BLOCK_TITLE_GENERATION_DESCRIPTION, app),
                 is_toggleable,
                 app,
             ))
@@ -3635,7 +3672,7 @@ impl SettingsWidget for GitOperationsAutogenWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "active ai a.i. unit tests commit pull request pr git code review autogen generate"
+        "active ai a.i. unit tests commit pull request pr git code review autogen generate 提交 拉取请求 生成 代码审查"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -3652,7 +3689,7 @@ impl SettingsWidget for GitOperationsAutogenWidget {
         let is_toggleable = ai_settings.is_active_ai_enabled(app);
         Flex::column()
             .with_child(render_ai_setting_toggle::<GitOperationsAutogenEnabled>(
-                "Commit & Pull Request Generation",
+                settings_text("Commit & Pull Request Generation", app),
                 WarpAgentPageAction::ToggleGitOperationsAutogen,
                 *ai_settings.git_operations_autogen_enabled_internal,
                 is_toggleable,
@@ -3661,7 +3698,7 @@ impl SettingsWidget for GitOperationsAutogenWidget {
                 app,
             ))
             .with_child(render_ai_setting_description(
-                GIT_OPERATIONS_AUTOGEN_DESCRIPTION,
+                settings_text(GIT_OPERATIONS_AUTOGEN_DESCRIPTION, app),
                 is_toggleable,
                 app,
             ))
@@ -3680,7 +3717,7 @@ impl SettingsWidget for NaturalLanguageDetectionWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai natural language detection autodetection prompt terminal command denylist permissions"
+        "oz agent ai natural language detection autodetection prompt terminal command denylist permissions 自然语言检测 自动检测 提示 终端 命令 拒绝列表"
     }
 
     fn render(
@@ -3711,7 +3748,7 @@ impl SettingsWidget for ShowInputHintTextWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai input show hint text"
+        "oz agent ai input show hint text 显示输入提示文本"
     }
 
     fn render(
@@ -3722,7 +3759,7 @@ impl SettingsWidget for ShowInputHintTextWidget {
     ) -> Box<dyn Element> {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_ai_setting_toggle::<ShowHintText>(
-            "Show input hint text",
+            settings_text("Show input hint text", app),
             WarpAgentPageAction::ToggleShowInputHintText,
             *InputSettings::as_ref(app).show_hint_text,
             is_any_ai_enabled,
@@ -3742,7 +3779,7 @@ impl SettingsWidget for AiCommandSearchHashTriggerWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "# hash pound trigger ai command search shorthand shell comment"
+        "# hash pound trigger ai command search shorthand shell comment 井号 触发 AI 命令搜索"
     }
 
     fn render(
@@ -3753,7 +3790,7 @@ impl SettingsWidget for AiCommandSearchHashTriggerWidget {
     ) -> Box<dyn Element> {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_ai_setting_toggle::<EnableAiCommandSearchHashTrigger>(
-            "Enable '#' trigger for AI Command Search",
+            settings_text("Enable '#' trigger for AI Command Search", app),
             WarpAgentPageAction::ToggleAiCommandSearchHashTrigger,
             *InputSettings::as_ref(app).enable_ai_command_search_hash_trigger,
             is_any_ai_enabled,
@@ -3773,7 +3810,7 @@ impl SettingsWidget for ShowAgentTipsWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai show agent tips"
+        "oz agent ai show agent tips 显示智能体提示"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -3788,7 +3825,7 @@ impl SettingsWidget for ShowAgentTipsWidget {
     ) -> Box<dyn Element> {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_ai_setting_toggle::<ShowAgentTips>(
-            "Show agent tips",
+            settings_text("Show agent tips", app),
             WarpAgentPageAction::ToggleShowAgentTips,
             *InputSettings::as_ref(app).show_agent_tips,
             is_any_ai_enabled,
@@ -3808,7 +3845,7 @@ impl SettingsWidget for IncludeAgentCommandsInHistoryWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai include agent-executed commands in history shell"
+        "oz agent ai include agent-executed commands in history shell 将智能体执行的命令包含在历史记录中"
     }
 
     fn render(
@@ -3820,7 +3857,7 @@ impl SettingsWidget for IncludeAgentCommandsInHistoryWidget {
         let ai_settings = AISettings::as_ref(app);
         let is_any_ai_enabled = ai_settings.is_any_ai_enabled(app);
         render_ai_setting_toggle::<IncludeAgentCommandsInHistory>(
-            "Include agent-executed commands in history",
+            settings_text("Include agent-executed commands in history", app),
             WarpAgentPageAction::ToggleIncludeAgentCommandsInHistory,
             *ai_settings.include_agent_commands_in_history,
             is_any_ai_enabled,
@@ -3840,7 +3877,7 @@ impl SettingsWidget for AutoApproveBypassesCommandDenylistWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai auto-approve fast forward bypass denylist permissions"
+        "oz agent ai auto-approve fast forward bypass denylist permissions 自动批准 绕过 拒绝列表"
     }
 
     fn render(
@@ -3853,7 +3890,7 @@ impl SettingsWidget for AutoApproveBypassesCommandDenylistWidget {
         let is_any_ai_enabled = ai_settings.is_any_ai_enabled(app);
         Flex::column()
             .with_child(render_ai_setting_toggle::<AutoApproveBypassesCommandDenylist>(
-                "Allow auto-approve to bypass command denylist",
+                settings_text("Allow auto-approve to bypass command denylist", app),
                 WarpAgentPageAction::ToggleAutoApproveBypassesCommandDenylist,
                 *ai_settings.auto_approve_bypasses_command_denylist,
                 is_any_ai_enabled,
@@ -3862,7 +3899,10 @@ impl SettingsWidget for AutoApproveBypassesCommandDenylistWidget {
                 app,
             ))
             .with_child(render_ai_setting_description(
-                "When enabled, fast forward and auto-approve run denylisted commands without asking for confirmation.",
+                settings_text(
+                    "When enabled, fast forward and auto-approve run denylisted commands without asking for confirmation.",
+                    app,
+                ),
                 is_any_ai_enabled,
                 app,
             ))
@@ -3877,7 +3917,7 @@ impl SettingsWidget for PromptSubmissionModeWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz agent ai default prompt submission mode queue interrupt auto-queue long-running long running lrc"
+        "oz agent ai default prompt submission mode queue interrupt auto-queue long-running long running lrc 默认提示提交模式 队列 中断 长时间运行的命令"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -3895,12 +3935,13 @@ impl SettingsWidget for PromptSubmissionModeWidget {
 
         let mut column = Flex::column().with_child(render_dropdown_item(
             appearance,
-            "Default prompt submission mode",
-            Some(
+            settings_text("Default prompt submission mode", app),
+            Some(settings_text(
                 "What happens when you submit a new prompt while the agent is still \
                  responding. You can override this per conversation using the auto-queue \
                  toggle.",
-            ),
+                app,
+            )),
             None,
             LocalOnlyIconState::for_setting(
                 PromptSubmissionMode::storage_key(),
@@ -3918,12 +3959,13 @@ impl SettingsWidget for PromptSubmissionModeWidget {
             column.add_child(
                 Container::new(render_dropdown_item(
                     appearance,
-                    "Default long-running command submission mode",
-                    Some(
+                    settings_text("Default long-running command submission mode", app),
+                    Some(settings_text(
                         "What happens when you submit a prompt while an agent is driving an \
                          agent-requested long-running command. Queued prompts are sent to the \
                          agent when the command finishes.",
-                    ),
+                        app,
+                    )),
                     None,
                     LocalOnlyIconState::for_setting(
                         LongRunningCommandSubmissionMode::storage_key(),
@@ -3976,20 +4018,20 @@ impl NaturalLanguageDetectionWidget {
         let mut section = Flex::column();
 
         if FeatureFlag::AgentView.is_enabled() {
-            static AUTODETECTION_DESCRIPTION_FRAGMENTS: LazyLock<Vec<FormattedTextFragment>> =
-                LazyLock::new(|| {
-                    vec![
-                        FormattedTextFragment::plain_text("Encountered an incorrect detection? "),
-                        FormattedTextFragment::hyperlink(
-                            "Let us know",
-                            "https://warpdotdev.typeform.com/to/offrTIpq",
-                        ),
-                    ]
-                });
+            let autodetection_description_fragments = vec![
+                FormattedTextFragment::plain_text(settings_text(
+                    "Encountered an incorrect detection? ",
+                    app,
+                )),
+                FormattedTextFragment::hyperlink(
+                    settings_text("Let us know", app),
+                    "https://warpdotdev.typeform.com/to/offrTIpq",
+                ),
+            ];
 
             section.add_children([
                 render_ai_setting_toggle::<NLDInTerminalEnabled>(
-                    "Autodetect agent prompts in terminal input",
+                    settings_text("Autodetect agent prompts in terminal input", app),
                     WarpAgentPageAction::ToggleNLDInTerminal,
                     ai_settings.is_nld_in_terminal_enabled(app),
                     is_toggleable,
@@ -3998,7 +4040,7 @@ impl NaturalLanguageDetectionWidget {
                     app,
                 ),
                 render_ai_setting_toggle::<AIAutoDetectionEnabled>(
-                    "Autodetect terminal commands in agent input",
+                    settings_text("Autodetect terminal commands in agent input", app),
                     WarpAgentPageAction::ToggleAIInputAutoDetection,
                     is_nld_enabled,
                     is_toggleable,
@@ -4009,7 +4051,7 @@ impl NaturalLanguageDetectionWidget {
                 Container::new(
                     FormattedTextElement::new(
                         FormattedText::new([FormattedTextLine::Line(
-                            (*AUTODETECTION_DESCRIPTION_FRAGMENTS).clone(),
+                            autodetection_description_fragments,
                         )]),
                         CONTENT_FONT_SIZE,
                         appearance.ui_font_family(),
@@ -4029,26 +4071,24 @@ impl NaturalLanguageDetectionWidget {
                 .finish(),
             ])
         } else {
-            static NATURAL_LANGUAGE_DETECTION_DESCRIPTION_FRAGMENTS: LazyLock<
-                Vec<FormattedTextFragment>,
-            > = LazyLock::new(|| {
-                vec![
-                    FormattedTextFragment::plain_text(
-                        "Enabling natural language detection will detect when natural language is written in the terminal input, and then automatically switch to Agent Mode for AI queries.",
-                    ),
-                    FormattedTextFragment::plain_text(
-                        " Encountered an incorrect input detection? ",
-                    ),
-                    FormattedTextFragment::hyperlink(
-                        "Let us know",
-                        "https://warpdotdev.typeform.com/to/offrTIpq",
-                    ),
-                ]
-            });
+            let natural_language_detection_description_fragments = vec![
+                FormattedTextFragment::plain_text(settings_text(
+                    "Enabling natural language detection will detect when natural language is written in the terminal input, and then automatically switch to Agent Mode for AI queries.",
+                    app,
+                )),
+                FormattedTextFragment::plain_text(settings_text(
+                    " Encountered an incorrect input detection? ",
+                    app,
+                )),
+                FormattedTextFragment::hyperlink(
+                    settings_text("Let us know", app),
+                    "https://warpdotdev.typeform.com/to/offrTIpq",
+                ),
+            ];
 
             section.add_children([
                 render_ai_setting_toggle::<AIAutoDetectionEnabled>(
-                    "Natural language detection",
+                    settings_text("Natural language detection", app),
                     WarpAgentPageAction::ToggleAIInputAutoDetection,
                     is_nld_enabled,
                     is_toggleable,
@@ -4059,7 +4099,7 @@ impl NaturalLanguageDetectionWidget {
                 Container::new(
                     FormattedTextElement::new(
                         FormattedText::new([FormattedTextLine::Line(
-                            (*NATURAL_LANGUAGE_DETECTION_DESCRIPTION_FRAGMENTS).clone(),
+                            natural_language_detection_description_fragments,
                         )]),
                         CONTENT_FONT_SIZE,
                         appearance.ui_font_family(),
@@ -4082,13 +4122,16 @@ impl NaturalLanguageDetectionWidget {
 
         section
             .with_child(render_ai_setting_label::<AICommandDenylist>(
-                "Natural language denylist".to_owned(),
+                settings_text("Natural language denylist", app).to_owned(),
                 is_toggleable,
                 &view.local_only_icon_tooltip_states,
                 app,
             ))
             .with_child(render_ai_setting_description(
-                "Commands listed here will never trigger natural language detection.",
+                settings_text(
+                    "Commands listed here will never trigger natural language detection.",
+                    app,
+                ),
                 is_toggleable,
                 app,
             ))
@@ -4117,7 +4160,7 @@ impl VoiceWidget {
         let ai_settings = AISettings::as_ref(app);
         let is_toggleable = ai_settings.is_any_ai_enabled(app);
         let mut column = Flex::column().with_child(render_ai_setting_toggle::<VoiceInputEnabled>(
-            "Voice Input",
+            settings_text("Voice Input", app),
             WarpAgentPageAction::ToggleVoiceInput,
             *ai_settings.voice_input_enabled_internal,
             is_toggleable,
@@ -4127,9 +4170,10 @@ impl VoiceWidget {
         ));
 
         let voice_input_description_text_fragments = vec![
-            FormattedTextFragment::plain_text(
+            FormattedTextFragment::plain_text(settings_text(
                 "Voice input allows you to control Warp by speaking directly to your terminal (powered by ",
-            ),
+                app,
+            )),
             FormattedTextFragment::hyperlink("Wispr Flow", WISPR_FLOW_URL),
             FormattedTextFragment::plain_text(")."),
         ];
@@ -4160,8 +4204,8 @@ impl VoiceWidget {
         if ai_settings.is_voice_input_enabled(app) {
             column.add_child(render_dropdown_item(
                 appearance,
-                "Key for Activating Voice Input",
-                Some("Press and hold to activate."),
+                settings_text("Key for Activating Voice Input", app),
+                Some(settings_text("Press and hold to activate.", app)),
                 None,
                 LocalOnlyIconState::for_setting(
                     VoiceInputToggleKey::storage_key(),
@@ -4174,8 +4218,11 @@ impl VoiceWidget {
             ));
             column.add_child(render_filterable_dropdown_item(
                 appearance,
-                "Speech Language",
-                Some("Language used when transcribing voice input."),
+                settings_text("Speech Language", app),
+                Some(settings_text(
+                    "Language used when transcribing voice input.",
+                    app,
+                )),
                 None,
                 LocalOnlyIconState::for_setting(
                     VoiceInputLanguage::storage_key(),
@@ -4196,7 +4243,7 @@ impl SettingsWidget for VoiceWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "voice agent oz ai a.i. speech input natural language talk english spanish french german estonian finnish"
+        "voice agent oz ai a.i. speech input natural language talk english spanish french german estonian finnish 语音输入 语音 语言 转录"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -4221,7 +4268,7 @@ impl OtherAIWidget {
         let items: Vec<DropdownItem<WarpAgentPageAction>> = ThinkingDisplayMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    settings_text(mode.display_name(), ctx),
                     WarpAgentPageAction::SetThinkingDisplayMode(mode),
                 )
             })
@@ -4243,7 +4290,7 @@ impl OtherAIWidget {
         let items: Vec<DropdownItem<WarpAgentPageAction>> = PromptSubmissionMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    settings_text(mode.display_name(), ctx),
                     WarpAgentPageAction::SetPromptSubmissionMode(mode),
                 )
             })
@@ -4266,7 +4313,7 @@ impl OtherAIWidget {
             LongRunningCommandSubmissionMode::iter()
                 .map(|mode| {
                     DropdownItem::new(
-                        mode.display_name(),
+                        settings_text(mode.display_name(), ctx),
                         WarpAgentPageAction::SetLongRunningCommandSubmissionMode(mode),
                     )
                 })
@@ -4288,7 +4335,7 @@ impl OtherAIWidget {
         let items: Vec<DropdownItem<WarpAgentPageAction>> = OrchestrationMessageDisplayMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    settings_text(mode.display_name(), ctx),
                     WarpAgentPageAction::SetOrchestrationMessageDisplayMode(mode),
                 )
             })
@@ -4314,7 +4361,7 @@ impl SettingsWidget for ShowOzUpdatesInZeroStateWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other oz updates zero state empty changelog new conversation agent what's new"
+        "other oz updates zero state empty changelog new conversation agent what's new 在新对话视图中显示 Warp Agent 更新日志"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -4330,7 +4377,7 @@ impl SettingsWidget for ShowOzUpdatesInZeroStateWidget {
         let ai_settings = AISettings::as_ref(app);
         let is_toggleable = ai_settings.is_any_ai_enabled(app);
         render_ai_setting_toggle::<ShouldShowOzUpdatesInZeroState>(
-            "Show Warp Agent changelog in new conversation view",
+            settings_text("Show Warp Agent changelog in new conversation view", app),
             WarpAgentPageAction::ToggleShowOzUpdatesInZeroState,
             *ai_settings.should_show_oz_updates_in_zero_state,
             is_toggleable,
@@ -4350,7 +4397,7 @@ impl SettingsWidget for UseAgentFooterWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other use agent footer full terminal use long running commands"
+        "other use agent footer full terminal use long running commands 使用智能体 页脚 长时间运行的命令"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -4370,7 +4417,7 @@ impl SettingsWidget for UseAgentFooterWidget {
             .with_child(render_ai_setting_toggle::<
                 ShouldRenderUseAgentToolbarForUserCommands,
             >(
-                "Show \"Use Agent\" footer",
+                settings_text("Show \"Use Agent\" footer", app),
                 WarpAgentPageAction::ToggleUseAgentToolbar,
                 *ai_settings.should_render_use_agent_footer_for_user_commands,
                 is_toggleable,
@@ -4379,7 +4426,10 @@ impl SettingsWidget for UseAgentFooterWidget {
                 app,
             ))
             .with_child(render_ai_setting_description(
-                "Shows hint to use the \"Full Terminal Use\"-enabled agent in long running commands.",
+                settings_text(
+                    "Shows hint to use the \"Full Terminal Use\"-enabled agent in long running commands.",
+                    app,
+                ),
                 is_toggleable,
                 app,
             ))
@@ -4394,7 +4444,7 @@ impl SettingsWidget for AgentToolbarLayoutEditorWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other agent toolbar layout chip chips rearrange re-arrange"
+        "other agent toolbar layout chip chips rearrange re-arrange 工具栏布局 芯片 重新排列"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -4407,9 +4457,9 @@ impl SettingsWidget for AgentToolbarLayoutEditorWidget {
         &self,
         view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
-        render_toolbar_layout_editor(&view.agent_toolbar_inline_editor, appearance)
+        render_toolbar_layout_editor(&view.agent_toolbar_inline_editor, appearance, app)
     }
 }
 
@@ -4422,7 +4472,7 @@ impl SettingsWidget for ShowConversationHistoryWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other conversation history tools panel collapse expand hide"
+        "other conversation history tools panel collapse expand hide 对话历史 工具面板 显示"
     }
 
     fn render(
@@ -4434,7 +4484,7 @@ impl SettingsWidget for ShowConversationHistoryWidget {
         let ai_settings = AISettings::as_ref(app);
         let is_toggleable = ai_settings.is_any_ai_enabled(app);
         render_ai_setting_toggle::<ShowConversationHistory>(
-            "Show conversation history in tools panel",
+            settings_text("Show conversation history in tools panel", app),
             WarpAgentPageAction::ToggleShowConversationHistory,
             *ai_settings.show_conversation_history,
             is_toggleable,
@@ -4452,7 +4502,7 @@ impl SettingsWidget for ThinkingDisplayModeWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other agent thinking display reasoning collapse never show expanded"
+        "other agent thinking display reasoning collapse never show expanded 智能体思考显示 推理 折叠 展开"
     }
 
     fn render(
@@ -4464,8 +4514,11 @@ impl SettingsWidget for ThinkingDisplayModeWidget {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_dropdown_item(
             appearance,
-            "Agent thinking display",
-            Some("Controls how reasoning/thinking traces are displayed."),
+            settings_text("Agent thinking display", app),
+            Some(settings_text(
+                "Controls how reasoning/thinking traces are displayed.",
+                app,
+            )),
             None,
             LocalOnlyIconState::for_setting(
                 ThinkingDisplayMode::storage_key(),
@@ -4486,7 +4539,7 @@ impl SettingsWidget for OrchestrationMessageDisplayModeWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other orchestration messages child agents collapse expand hide display"
+        "other orchestration messages child agents collapse expand hide display 编排消息 显示 折叠 展开"
     }
 
     fn render(
@@ -4498,8 +4551,11 @@ impl SettingsWidget for OrchestrationMessageDisplayModeWidget {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_dropdown_item(
             appearance,
-            "Orchestration message display",
-            Some("Controls whether orchestration messages stay expanded."),
+            settings_text("Orchestration message display", app),
+            Some(settings_text(
+                "Controls whether orchestration messages stay expanded.",
+                app,
+            )),
             None,
             LocalOnlyIconState::for_setting(
                 OrchestrationMessageDisplayMode::storage_key(),
@@ -4525,7 +4581,7 @@ impl SettingsWidget for ConversationLayoutPreferenceWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "other preferred layout opening existing agent conversations new tab split pane"
+        "other preferred layout opening existing agent conversations new tab split pane 打开现有智能体对话时的首选布局 新标签页 拆分窗格"
     }
 
     fn render(
@@ -4539,7 +4595,10 @@ impl SettingsWidget for ConversationLayoutPreferenceWidget {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         render_dropdown_item(
             appearance,
-            "Preferred layout when opening existing agent conversations",
+            settings_text(
+                "Preferred layout when opening existing agent conversations",
+                app,
+            ),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -4599,7 +4658,7 @@ impl SettingsWidget for AgentAttributionWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "agent attribution commit pull request co-author author credit oz warp"
+        "agent attribution commit pull request co-author author credit oz warp 智能体归属 提交 拉取请求 作者"
     }
 
     fn render(
@@ -4626,7 +4685,11 @@ impl SettingsWidget for AgentAttributionWidget {
                 .switch(self.toggle.clone())
                 .check(state.is_enabled)
                 .with_tooltip(TooltipConfig {
-                    text: "This option is enforced by your organization's settings and cannot be customized.".to_string(),
+                    text: settings_text(
+                        "This option is enforced by your organization's settings and cannot be customized.",
+                        app,
+                    )
+                    .to_string(),
                     styles: ui_builder.default_tool_tip_styles(),
                 })
                 .disable()
@@ -4652,7 +4715,7 @@ impl SettingsWidget for AgentAttributionWidget {
 
         let toggle_row = build_toggle_element(
             render_body_item_label::<WarpAgentPageAction>(
-                "Enable agent attribution".to_string(),
+                settings_text("Enable agent attribution", app).to_string(),
                 Some(styles::header_font_color(!state.is_disabled, app)),
                 None,
                 LocalOnlyIconState::Hidden,
@@ -4667,7 +4730,10 @@ impl SettingsWidget for AgentAttributionWidget {
         Flex::column()
             .with_child(toggle_row)
             .with_child(render_ai_setting_description(
-                "Warp Agent can add attribution to commit messages and pull requests it creates",
+                settings_text(
+                    "Warp Agent can add attribution to commit messages and pull requests it creates",
+                    app,
+                ),
                 !state.is_disabled,
                 app,
             ))
@@ -4688,7 +4754,7 @@ impl SettingsWidget for CloudAgentComputerUseWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "oz cloud agent computer use orchestration multi-agent"
+        "oz cloud agent computer use orchestration multi-agent 云端智能体 计算机使用 编排"
     }
 
     fn render(
@@ -4722,7 +4788,11 @@ impl SettingsWidget for CloudAgentComputerUseWidget {
                 .switch(self.toggle.clone())
                 .check(is_checked)
                 .with_tooltip(TooltipConfig {
-                    text: "This option is enforced by your organization's settings and cannot be customized.".to_string(),
+                    text: settings_text(
+                        "This option is enforced by your organization's settings and cannot be customized.",
+                        app,
+                    )
+                    .to_string(),
                     styles: ui_builder.default_tool_tip_styles(),
                 })
                 .disable()
@@ -4750,7 +4820,7 @@ impl SettingsWidget for CloudAgentComputerUseWidget {
 
         let toggle_row = build_toggle_element(
             render_body_item_label::<WarpAgentPageAction>(
-                "Computer use in Cloud Agents".to_string(),
+                settings_text("Computer use in Cloud Agents", app).to_string(),
                 Some(styles::header_font_color(!is_disabled, app)),
                 None,
                 LocalOnlyIconState::Hidden,
@@ -4765,7 +4835,10 @@ impl SettingsWidget for CloudAgentComputerUseWidget {
         Flex::column()
             .with_child(toggle_row)
             .with_child(render_ai_setting_description(
-                "Enable computer use in cloud agent conversations started from the Warp app.",
+                settings_text(
+                    "Enable computer use in cloud agent conversations started from the Warp app.",
+                    app,
+                ),
                 !is_disabled,
                 app,
             ))
@@ -4782,7 +4855,7 @@ impl SettingsWidget for CloudHandoffWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "cloud handoff move to cloud local"
+        "cloud handoff move to cloud local 云端交接 迁移到云端"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -4809,7 +4882,10 @@ impl SettingsWidget for CloudHandoffWidget {
         let is_force_disabled = !is_any_ai_enabled || cloud_convos_off;
 
         let tooltip_text = if cloud_convos_off {
-            "Cloud handoff requires cloud conversations to be enabled."
+            settings_text(
+                "Cloud handoff requires cloud conversations to be enabled.",
+                app,
+            )
         } else {
             ""
         };
@@ -4838,7 +4914,7 @@ impl SettingsWidget for CloudHandoffWidget {
 
         let handoff_row = build_toggle_element(
             render_body_item_label::<WarpAgentPageAction>(
-                "Cloud handoff".to_string(),
+                settings_text("Cloud handoff", app).to_string(),
                 Some(styles::header_font_color(!is_force_disabled, app)),
                 None,
                 LocalOnlyIconState::Hidden,
@@ -4853,7 +4929,7 @@ impl SettingsWidget for CloudHandoffWidget {
         Flex::column()
             .with_child(handoff_row)
             .with_child(render_ai_setting_description(
-                "Hand off local agent conversations to a cloud agent.",
+                settings_text("Hand off local agent conversations to a cloud agent.", app),
                 !is_force_disabled,
                 app,
             ))
@@ -4870,7 +4946,7 @@ impl SettingsWidget for AutoHandoffOnSleepWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "cloud handoff auto sleep before macos"
+        "cloud handoff auto sleep before macos 睡眠前自动交接"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -4901,7 +4977,7 @@ impl SettingsWidget for AutoHandoffOnSleepWidget {
             .finish();
         let auto_handoff_on_sleep_row = build_toggle_element(
             render_body_item_label::<WarpAgentPageAction>(
-                "Auto-handoff before sleep".to_string(),
+                settings_text("Auto-handoff before sleep", app).to_string(),
                 Some(styles::header_font_color(true, app)),
                 None,
                 LocalOnlyIconState::Hidden,
@@ -4916,7 +4992,10 @@ impl SettingsWidget for AutoHandoffOnSleepWidget {
         Flex::column()
             .with_child(auto_handoff_on_sleep_row)
             .with_child(render_ai_setting_description(
-                "When macOS is about to sleep, automatically moves the most recently focused running local Warp Agent conversation to Cloud Mode so it can keep working.",
+                settings_text(
+                    "When macOS is about to sleep, automatically moves the most recently focused running local Warp Agent conversation to Cloud Mode so it can keep working.",
+                    app,
+                ),
                 true,
                 app,
             ))
@@ -4933,7 +5012,7 @@ impl SettingsWidget for AmpersandHandoffWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "cloud handoff ampersand & trigger compose"
+        "cloud handoff ampersand & trigger compose 与号 触发 交接 撰写"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -4962,7 +5041,7 @@ impl SettingsWidget for AmpersandHandoffWidget {
 
         let ampersand_row = build_toggle_element(
             render_body_item_label::<WarpAgentPageAction>(
-                "Use & to trigger handoff".to_string(),
+                settings_text("Use & to trigger handoff", app).to_string(),
                 Some(styles::header_font_color(true, app)),
                 None,
                 LocalOnlyIconState::Hidden,
@@ -4977,7 +5056,10 @@ impl SettingsWidget for AmpersandHandoffWidget {
         Flex::column()
             .with_child(ampersand_row)
             .with_child(render_ai_setting_description(
-                "Type & as the first character to enter cloud handoff compose mode.",
+                settings_text(
+                    "Type & as the first character to enter cloud handoff compose mode.",
+                    app,
+                ),
                 true,
                 app,
             ))
@@ -5167,15 +5249,15 @@ impl ApiKeysWidget {
             }
         });
 
-        let grok_connect_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Continue with Grok", SecondaryTheme)
+        let grok_connect_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Continue with Grok", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::ConnectGrokSubscription);
                 })
         });
-        let grok_cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", SecondaryTheme)
+        let grok_cancel_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Cancel", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::CancelGrokSubscriptionConnect);
@@ -5183,28 +5265,29 @@ impl ApiKeysWidget {
         });
         // Disabled between a Cancel click and the port being confirmed
         // released -- exposing Connect any earlier could race it.
-        let grok_cancelling_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancelling…", SecondaryTheme).with_size(ButtonSize::Small)
+        let grok_cancelling_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Cancelling…", ctx), SecondaryTheme)
+                .with_size(ButtonSize::Small)
         });
         grok_cancelling_button.update(ctx, |button, ctx| {
             button.set_disabled(true, ctx);
         });
-        let grok_disconnect_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Disconnect", DangerSecondaryTheme)
+        let grok_disconnect_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Disconnect", ctx), DangerSecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::DisconnectGrokSubscription);
                 })
         });
-        let chatgpt_connect_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Continue with ChatGPT", SecondaryTheme)
+        let chatgpt_connect_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Continue with ChatGPT", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::ConnectChatGPTSubscription);
                 })
         });
-        let chatgpt_cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", SecondaryTheme)
+        let chatgpt_cancel_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Cancel", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(
@@ -5212,8 +5295,8 @@ impl ApiKeysWidget {
                     );
                 })
         });
-        let chatgpt_disconnect_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Disconnect", SecondaryTheme)
+        let chatgpt_disconnect_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Disconnect", ctx), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpAgentPageAction::DisconnectChatGPTSubscription);
@@ -5318,12 +5401,17 @@ impl ApiKeysWidget {
         provider: &LLMProvider,
         mouse_state: MouseStateHandle,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let provider_name = provider.display_name();
         let tooltip_text = FormattedText::new([FormattedTextLine::Line(vec![
-            FormattedTextFragment::plain_text(format!(
-                "Your organization has provided an API key for {provider_name}. A key entered here takes precedence for {provider_name} requests."
-            )),
+            FormattedTextFragment::plain_text(
+                settings_text(
+                    "Your organization has provided an API key for {provider_name}. A key entered here takes precedence for {provider_name} requests.",
+                    app,
+                )
+                .replace("{provider_name}", provider_name),
+            ),
         ])]);
         let tooltip_background = appearance.theme().tooltip_background();
         let icon_color = appearance.theme().active_ui_text_color();
@@ -5406,6 +5494,7 @@ impl ApiKeysWidget {
                     &provider,
                     team_key_info_tooltip,
                     appearance,
+                    app,
                 ))
                 .with_margin_left(4.)
                 .finish(),
@@ -5434,15 +5523,18 @@ impl ApiKeysWidget {
     ) -> Box<dyn Element> {
         let mut column = Flex::column().with_spacing(16.);
         for provider_editor in &self.provider_api_key_editors {
-            column.add_child(self.render_api_key_input(
-                appearance,
-                format!("{} API key", provider_editor.provider.display_name()),
-                provider_editor.provider,
-                provider_editor.team_key_info_tooltip.clone(),
-                provider_editor.editor.clone(),
-                is_enabled,
-                app,
-            ));
+            column.add_child(
+                self.render_api_key_input(
+                    appearance,
+                    settings_text("{provider} API key", app)
+                        .replace("{provider}", provider_editor.provider.display_name()),
+                    provider_editor.provider,
+                    provider_editor.team_key_info_tooltip.clone(),
+                    provider_editor.editor.clone(),
+                    is_enabled,
+                    app,
+                ),
+            );
         }
         column.finish()
     }
@@ -5463,23 +5555,26 @@ impl ApiKeysWidget {
         };
 
         if show_provider_keys {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
+            add_paragraph(vec![FormattedTextFragment::plain_text(settings_text(
                 "Use your own API keys from model providers for Warp Agent. API keys are used to make requests to your chosen model provider. Using auto models or models you do not have available API keys for will consume Warp credits.",
-            )]);
+                app,
+            ))]);
         }
 
         if show_custom_endpoints {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
+            add_paragraph(vec![FormattedTextFragment::plain_text(settings_text(
                 "Add custom endpoints to use third-party models. Custom endpoints must support OpenAI Chat Completions, OpenAI Responses, or Anthropic Messages.",
-            )]);
+                app,
+            ))]);
         }
 
         if show_provider_keys || show_custom_endpoints {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
+            add_paragraph(vec![FormattedTextFragment::plain_text(settings_text(
                 "API keys added here are stored only on this device, not on Warp's servers.",
-            )]);
+                app,
+            ))]);
             add_paragraph(vec![FormattedTextFragment::hyperlink(
-                "Learn more",
+                settings_text("Learn more", app),
                 CUSTOM_INFERENCE_LEARN_MORE_URL,
             )]);
         }
@@ -5582,9 +5677,13 @@ impl ApiKeysWidget {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_spacing(4.)
             .with_child(
-                Text::new_inline("Use your", appearance.ui_font_family(), CONTENT_FONT_SIZE)
-                    .with_color(text_color.into())
-                    .finish(),
+                Text::new_inline(
+                    settings_text("Use your", app),
+                    appearance.ui_font_family(),
+                    CONTENT_FONT_SIZE,
+                )
+                .with_color(text_color.into())
+                .finish(),
             )
             .with_child(
                 ConstrainedBox::new(Icon::XLogo.to_warpui_icon(text_color).finish())
@@ -5594,7 +5693,7 @@ impl ApiKeysWidget {
             )
             .with_child(
                 Text::new_inline(
-                    "Premium or SuperGrok plan",
+                    settings_text("Premium or SuperGrok plan", app),
                     appearance.ui_font_family(),
                     CONTENT_FONT_SIZE,
                 )
@@ -5620,7 +5719,10 @@ impl ApiKeysWidget {
 
         let description = Container::new(
             Text::new(
-                "Connect your SuperGrok plan to use Grok models in the Warp Agent through your xAI account.",
+                settings_text(
+                    "Connect your SuperGrok plan to use Grok models in the Warp Agent through your xAI account.",
+                    app,
+                ),
                 appearance.ui_font_family(),
                 CONTENT_FONT_SIZE,
             )
@@ -5638,12 +5740,12 @@ impl ApiKeysWidget {
 
         if let Some(tokens) = grok_tokens {
             let connected_text = match tokens.connected_at.map(DateTime::<Local>::from) {
-                Some(connected_at) => format!(
-                    "Connected on {}.",
-                    connected_at.format("%m/%d/%Y at %-I:%M%P")
+                Some(connected_at) => settings_text("Connected on {date}.", app).replace(
+                    "{date}",
+                    &connected_at.format("%m/%d/%Y at %-I:%M%P").to_string(),
                 ),
                 // Tokens stored before the connection time was tracked.
-                None => "Connected.".to_string(),
+                None => settings_text("Connected.", app).to_string(),
             };
             let check = ConstrainedBox::new(
                 Icon::Check
@@ -5690,9 +5792,13 @@ impl ApiKeysWidget {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_spacing(4.)
             .with_child(
-                Text::new_inline("Use your", appearance.ui_font_family(), CONTENT_FONT_SIZE)
-                    .with_color(text_color.into())
-                    .finish(),
+                Text::new_inline(
+                    settings_text("Use your", app),
+                    appearance.ui_font_family(),
+                    CONTENT_FONT_SIZE,
+                )
+                .with_color(text_color.into())
+                .finish(),
             )
             .with_child(
                 ConstrainedBox::new(Icon::OpenAILogo.to_warpui_icon(text_color).finish())
@@ -5702,7 +5808,7 @@ impl ApiKeysWidget {
             )
             .with_child(
                 Text::new_inline(
-                    "OpenAI ChatGPT plan",
+                    settings_text("OpenAI ChatGPT plan", app),
                     appearance.ui_font_family(),
                     CONTENT_FONT_SIZE,
                 )
@@ -5732,7 +5838,10 @@ impl ApiKeysWidget {
 
         let description = Container::new(
             Text::new(
-                "Connect your ChatGPT plan to use OpenAI models in the Warp Agent through your OpenAI account.",
+                settings_text(
+                    "Connect your ChatGPT plan to use OpenAI models in the Warp Agent through your OpenAI account.",
+                    app,
+                ),
                 appearance.ui_font_family(),
                 CONTENT_FONT_SIZE,
             )
@@ -5753,14 +5862,19 @@ impl ApiKeysWidget {
             let account = connection
                 .email
                 .as_deref()
-                .map(|email| format!(" as {email}"))
+                .map(|email| settings_text(" as {email}", app).replace("{email}", email))
                 .unwrap_or_default();
-            let mut connected_text = format!(
-                "Connected{account} on {}.",
-                connected_at.format("%m/%d/%Y at %-I:%M%P")
-            );
+            let mut connected_text = settings_text("Connected{account} on {date}.", app)
+                .replace("{account}", &account)
+                .replace(
+                    "{date}",
+                    &connected_at.format("%m/%d/%Y at %-I:%M%P").to_string(),
+                );
             if !connection.token_sharing_active {
-                connected_text.push_str(" Reconnect to use your plan for requests.");
+                connected_text.push_str(settings_text(
+                    " Reconnect to use your plan for requests.",
+                    app,
+                ));
             }
             let check = ConstrainedBox::new(
                 Icon::Check
@@ -5838,7 +5952,7 @@ impl ApiKeysWidget {
         let ai_settings = AISettings::as_ref(app);
 
         let toggle = render_ai_setting_toggle::<CanUseWarpCreditsForFallback>(
-            "Warp credit fallback",
+            settings_text("Warp credit fallback", app),
             WarpAgentPageAction::ToggleCanUseWarpCreditsForFallback,
             *ai_settings.can_use_warp_credits_for_fallback,
             ai_settings.is_any_ai_enabled(app),
@@ -5848,7 +5962,10 @@ impl ApiKeysWidget {
         );
 
         let description = render_ai_setting_description(
-            "When enabled, agent requests may be routed to one of Warp's provided models in the event of an error. Warp will prioritize using your API keys over your Warp credits.",
+            settings_text(
+                "When enabled, agent requests may be routed to one of Warp's provided models in the event of an error. Warp will prioritize using your API keys over your Warp credits.",
+                app,
+            ),
             ai_settings.is_any_ai_enabled(app),
             app,
         );
@@ -5912,7 +6029,7 @@ impl SettingsWidget for ApiKeysWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "api keys bring your own byo openai anthropic google claude gemini gpt custom inference endpoint grok supergrok xai chatgpt subscription plan"
+        "api keys bring your own byo openai anthropic google claude gemini gpt custom inference endpoint grok supergrok xai chatgpt subscription plan 自定义推理 API 密钥 自定义端点"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -5948,7 +6065,10 @@ impl SettingsWidget for ApiKeysWidget {
             ));
         } else if managed_byok_byoe_enabled {
             column.add_child(render_ai_setting_description(
-                "Your organization manages custom inference. Personal API keys and custom endpoints are currently disabled.",
+                settings_text(
+                    "Your organization manages custom inference. Personal API keys and custom endpoints are currently disabled.",
+                    app,
+                ),
                 is_any_ai_enabled,
                 app,
             ));
@@ -5969,7 +6089,7 @@ impl SettingsWidget for ApiKeysWidget {
                 column.add_child(
                     Container::new(
                         Text::new_inline(
-                            "Custom endpoints",
+                            settings_text("Custom endpoints", app),
                             appearance.ui_font_family(),
                             CONTENT_FONT_SIZE,
                         )
@@ -6062,10 +6182,14 @@ impl SettingsWidget for ApiKeysWidget {
             {
                 if team.billing_metadata.customer_type == CustomerType::Enterprise {
                     vec![
-                        FormattedTextFragment::hyperlink("Contact sales", "mailto:sales@warp.dev"),
-                        FormattedTextFragment::plain_text(
-                            " to enable bringing your own API keys on your Enterprise plan.",
+                        FormattedTextFragment::hyperlink(
+                            settings_text("Contact sales", app),
+                            "mailto:sales@warp.dev",
                         ),
+                        FormattedTextFragment::plain_text(settings_text(
+                            " to enable bringing your own API keys on your Enterprise plan.",
+                            app,
+                        )),
                     ]
                 } else {
                     let current_user_email = auth_state.user_email().unwrap_or_default();
@@ -6074,15 +6198,19 @@ impl SettingsWidget for ApiKeysWidget {
                     if has_admin_permissions {
                         vec![
                             FormattedTextFragment::hyperlink(
-                                "Upgrade to the Build plan",
+                                settings_text("Upgrade to the Build plan", app),
                                 upgrade_url,
                             ),
-                            FormattedTextFragment::plain_text(" to use your own API keys."),
+                            FormattedTextFragment::plain_text(settings_text(
+                                " to use your own API keys.",
+                                app,
+                            )),
                         ]
                     } else {
-                        vec![FormattedTextFragment::plain_text(
+                        vec![FormattedTextFragment::plain_text(settings_text(
                             "Ask your team's admin to upgrade to the Build plan to use your own API keys.",
-                        )]
+                            app,
+                        ))]
                     }
                 }
             } else if FeatureFlag::SoloUserByok.is_enabled()
@@ -6090,17 +6218,26 @@ impl SettingsWidget for ApiKeysWidget {
             {
                 vec![
                     FormattedTextFragment::hyperlink_action(
-                        "Create an account",
+                        settings_text("Create an account", app),
                         WarpAgentPageAction::SignupAnonymousUser,
                     ),
-                    FormattedTextFragment::plain_text(" to use your own API keys."),
+                    FormattedTextFragment::plain_text(settings_text(
+                        " to use your own API keys.",
+                        app,
+                    )),
                 ]
             } else {
                 let user_id = auth_state.user_id().unwrap_or_default();
                 let upgrade_url = UserWorkspaces::upgrade_link(user_id);
                 vec![
-                    FormattedTextFragment::hyperlink("Upgrade to the Build plan", upgrade_url),
-                    FormattedTextFragment::plain_text(" to use your own API keys."),
+                    FormattedTextFragment::hyperlink(
+                        settings_text("Upgrade to the Build plan", app),
+                        upgrade_url,
+                    ),
+                    FormattedTextFragment::plain_text(settings_text(
+                        " to use your own API keys.",
+                        app,
+                    )),
                 ]
             };
 
@@ -6251,8 +6388,8 @@ impl AwsBedrockWidget {
             }
         });
 
-        let refresh_credentials_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Refresh", SecondaryTheme)
+        let refresh_credentials_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Refresh", ctx), SecondaryTheme)
                 .with_icon(Icon::RefreshCw04)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
@@ -6359,16 +6496,21 @@ impl AwsBedrockWidget {
             user_workspaces.is_aws_bedrock_credentials_enabled(&scope, app);
         let is_usage_enabled = is_section_enabled && are_credentials_enabled;
         let toggle_description = if is_admin_enforced {
-            "Warp loads and sends local AWS CLI credentials for Bedrock-supported models. This setting is managed by your organization.".to_string()
+            settings_text(
+                "Warp loads and sends local AWS CLI credentials for Bedrock-supported models. This setting is managed by your organization.",
+                app,
+            )
         } else {
-            "Warp loads and sends local AWS CLI credentials for Bedrock-supported models."
-                .to_string()
+            settings_text(
+                "Warp loads and sends local AWS CLI credentials for Bedrock-supported models.",
+                app,
+            )
         };
 
         let mut column = Flex::column().with_spacing(16.).with_child(
             Flex::column()
                 .with_child(render_ai_setting_toggle::<AwsBedrockCredentialsEnabled>(
-                    "Use AWS Bedrock credentials",
+                    settings_text("Use AWS Bedrock credentials", app),
                     WarpAgentPageAction::ToggleAwsBedrockCredentialsEnabled,
                     are_credentials_enabled,
                     is_toggleable,
@@ -6404,9 +6546,13 @@ impl AwsBedrockWidget {
                 ..Default::default()
             };
 
-            let label = Text::new_inline(label, appearance.ui_font_family(), CONTENT_FONT_SIZE)
-                .with_color(styles::header_font_color(is_enabled, app).into())
-                .finish();
+            let label = Text::new_inline(
+                settings_text(label, app),
+                appearance.ui_font_family(),
+                CONTENT_FONT_SIZE,
+            )
+            .with_color(styles::header_font_color(is_enabled, app).into())
+            .finish();
 
             let input = appearance
                 .ui_builder()
@@ -6516,7 +6662,7 @@ impl AwsBedrockWidget {
         let auto_login_enabled = *AISettings::as_ref(app).aws_bedrock_auto_login.value();
 
         let toggle = render_ai_setting_toggle::<AwsBedrockAutoLogin>(
-            "Automatically run login command",
+            settings_text("Automatically run login command", app),
             WarpAgentPageAction::ToggleAwsBedrockAutoLogin,
             auto_login_enabled,
             is_usage_enabled,
@@ -6525,7 +6671,10 @@ impl AwsBedrockWidget {
             app,
         );
         let description = render_ai_setting_description(
-            "When enabled, the login command will run automatically when AWS Bedrock credentials expire.",
+            settings_text(
+                "When enabled, the login command will run automatically when AWS Bedrock credentials expire.",
+                app,
+            ),
             is_usage_enabled,
             app,
         );
@@ -6544,7 +6693,7 @@ impl SettingsWidget for AwsBedrockWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "aws bedrock amazon credentials login command profile auto refresh"
+        "aws bedrock amazon credentials login command profile auto refresh 凭证 登录命令 配置文件 自动刷新"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -6588,8 +6737,8 @@ impl GeminiEnterpriseWidget {
     fn new(ctx: &mut ViewContext<<Self as SettingsWidget>::View>) -> Self {
         let self_handle = ctx.handle();
         let is_refresh_enabled = Self::is_refresh_enabled(ctx);
-        let refresh_credentials_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Refresh", SecondaryTheme)
+        let refresh_credentials_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Refresh", ctx), SecondaryTheme)
                 .with_icon(Icon::RefreshCw04)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
@@ -6668,20 +6817,24 @@ impl GeminiEnterpriseWidget {
         let are_credentials_enabled =
             user_workspaces.is_gemini_enterprise_credentials_enabled(&scope, app);
         let toggle_description = if is_admin_enforced {
-            "Warp routes eligible requests through your workspace's Gemini Enterprise Google Cloud \
-             project. This setting is managed by your organization."
-                .to_string()
+            settings_text(
+                "Warp routes eligible requests through your workspace's Gemini Enterprise Google Cloud \
+                 project. This setting is managed by your organization.",
+                app,
+            )
         } else {
-            "Warp routes eligible requests through your workspace's Gemini Enterprise Google Cloud \
-             project."
-                .to_string()
+            settings_text(
+                "Warp routes eligible requests through your workspace's Gemini Enterprise Google Cloud \
+                 project.",
+                app,
+            )
         };
 
         let mut column = Flex::column().with_spacing(16.).with_child(
             Flex::column()
                 .with_child(
                     render_ai_setting_toggle::<GeminiEnterpriseCredentialsEnabled>(
-                        "Use Gemini Enterprise credentials",
+                        settings_text("Use Gemini Enterprise credentials", app),
                         WarpAgentPageAction::ToggleGeminiEnterpriseCredentialsEnabled,
                         are_credentials_enabled,
                         is_toggleable,
@@ -6782,7 +6935,7 @@ impl SettingsWidget for GeminiEnterpriseWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "gemini enterprise geap google vertex credentials refresh"
+        "gemini enterprise geap google vertex credentials refresh 凭证 刷新"
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
@@ -6827,7 +6980,7 @@ impl SettingsWidget for AddCustomRouterWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "add new custom model router create"
+        "add new custom model router create 添加自定义模型路由器 新建"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -6853,7 +7006,7 @@ impl SettingsWidget for CustomModelRoutersWidget {
     type View = WarpAgentPageView;
 
     fn search_terms(&self) -> &str {
-        "custom model router complexity prompt auto model routing"
+        "custom model router complexity prompt auto model routing 自定义模型路由器 复杂度 路由"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -6872,7 +7025,10 @@ impl SettingsWidget for CustomModelRoutersWidget {
         let mut column = Flex::column();
 
         column.add_child(render_ai_setting_description(
-            "Automatically route tasks to specific models based on task complexity or custom rules. Custom routers will appear in your model selector menu.",
+            settings_text(
+                "Automatically route tasks to specific models based on task complexity or custom rules. Custom routers will appear in your model selector menu.",
+                app,
+            ),
             is_any_ai_enabled,
             app,
         ));

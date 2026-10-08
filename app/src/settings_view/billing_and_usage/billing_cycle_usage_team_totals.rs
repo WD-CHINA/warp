@@ -1,6 +1,5 @@
 use pathfinder_geometry::vector::vec2f;
 use warp_core::ui::appearance::Appearance;
-use warpui::Element;
 use warpui::elements::{
     Border, ChildAnchor, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, Empty,
     Expanded, Flex, Hoverable, MainAxisAlignment, MainAxisSize, MouseStateHandle,
@@ -8,7 +7,9 @@ use warpui::elements::{
     Text,
 };
 use warpui::fonts::{Properties, Weight};
+use warpui::{AppContext, Element};
 
+use crate::settings::settings_text;
 use crate::settings_view::billing_and_usage::billing_cycle_usage_common::{
     BarSegment, BillingUsageMouseStates, ROW_BORDER_RADIUS, ROW_BORDER_WIDTH, TOOLTIP_GAP,
     aggregate_segments, cost_type_color, format_cost_cents, format_credits,
@@ -200,16 +201,21 @@ fn render_card_pill_bar(
 fn build_team_total_card(
     summary: &TeamTotalCardSummary,
     appearance: &Appearance,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     let theme = appearance.theme();
     let card_bg = theme.background().into_solid();
     let main = blended_colors::text_main(theme, card_bg);
     let sub = blended_colors::text_sub(theme, card_bg);
 
-    let title_text = Text::new_inline(summary.title.to_string(), appearance.ui_font_family(), 13.)
-        .with_color(sub)
-        .with_style(Properties::default().weight(Weight::Medium))
-        .finish();
+    let title_text = Text::new_inline(
+        settings_text(summary.title, app),
+        appearance.ui_font_family(),
+        13.,
+    )
+    .with_color(sub)
+    .with_style(Properties::default().weight(Weight::Medium))
+    .finish();
 
     let cost_text = Text::new_inline(
         format_cost_cents(summary.total_cost_cents),
@@ -221,7 +227,8 @@ fn build_team_total_card(
     .finish();
 
     let credits_text = Text::new_inline(
-        format!("({} credits)", format_credits(summary.total_credits)),
+        settings_text("({credits} credits)", app)
+            .replace("{credits}", &format_credits(summary.total_credits)),
         appearance.ui_font_family(),
         13.,
     )
@@ -237,7 +244,8 @@ fn build_team_total_card(
     let totals_row: Box<dyn Element> = match summary.limit_cents {
         Some(limit) => {
             let limit_text = Text::new_inline(
-                format!("Limit: {}", format_cost_cents(limit)),
+                settings_text("Limit: {amount}", app)
+                    .replace("{amount}", &format_cost_cents(limit)),
                 appearance.ui_font_family(),
                 12.,
             )
@@ -288,14 +296,15 @@ fn render_team_total_card(
     summary: &TeamTotalCardSummary,
     tooltip_mouse_state: MouseStateHandle,
     appearance: &Appearance,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     if summary.segments.is_empty() {
-        return build_team_total_card(summary, appearance);
+        return build_team_total_card(summary, appearance, app);
     }
 
     Hoverable::new(tooltip_mouse_state, move |state| {
         let mut stack = Stack::new();
-        stack.add_child(build_team_total_card(summary, appearance));
+        stack.add_child(build_team_total_card(summary, appearance, app));
 
         if state.is_hovered() {
             stack.add_positioned_overlay_child(
@@ -304,6 +313,7 @@ fn render_team_total_card(
                     summary.total_credits,
                     summary.total_cost_cents,
                     appearance,
+                    app,
                 ),
                 OffsetPositioning::offset_from_parent(
                     vec2f(0., -TOOLTIP_GAP),
@@ -325,6 +335,7 @@ fn render_team_totals_section(
     visibility: &UsageVisibility,
     mouse_states: &BillingUsageMouseStates,
     appearance: &Appearance,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     let summaries = build_team_total_card_summaries(entries, visibility);
     let mut row = Flex::row()
@@ -336,7 +347,7 @@ fn render_team_totals_section(
         row.add_child(
             Expanded::new(
                 1.,
-                render_team_total_card(summary, tooltip_state, appearance),
+                render_team_total_card(summary, tooltip_state, appearance, app),
             )
             .finish(),
         );
@@ -350,18 +361,23 @@ pub fn render_team_totals_block(
     visibility: &UsageVisibility,
     mouse_states: &BillingUsageMouseStates,
     appearance: &Appearance,
+    app: &AppContext,
 ) -> Box<dyn Element> {
     let mut column = Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
     column.add_child(
-        Container::new(render_section_subheader("Team", appearance))
-            .with_margin_bottom(8.)
-            .finish(),
+        Container::new(render_section_subheader(
+            settings_text("Team", app),
+            appearance,
+        ))
+        .with_margin_bottom(8.)
+        .finish(),
     );
     column.add_child(render_team_totals_section(
         entries,
         visibility,
         mouse_states,
         appearance,
+        app,
     ));
     column.finish()
 }

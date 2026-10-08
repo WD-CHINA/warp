@@ -17,6 +17,7 @@ use warpui::{
 use crate::ai::AIRequestUsageModel;
 use crate::auth::{AuthManager, AuthStateProvider};
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
+use crate::settings::settings_text;
 use crate::settings_view::admin_actions::AdminActions;
 use crate::settings_view::billing_and_usage::billing_cycle_usage_common::{
     BillingUsageMouseStates, filter_entries_by_attributed_team, filter_legacy_buckets,
@@ -320,6 +321,7 @@ impl BillingCycleUsageSectionView {
                 &visibility,
                 &self.row_mouse_states,
                 appearance,
+                app,
             ))
             .with_margin_top(16.)
             .finish(),
@@ -411,10 +413,14 @@ impl BillingCycleUsageSectionView {
             .with_main_axis_size(MainAxisSize::Max);
 
         row.add_child(
-            Text::new_inline("Usage", appearance.ui_font_family(), HEADER_FONT_SIZE)
-                .with_style(Properties::default().weight(Weight::Bold))
-                .with_color(theme.active_ui_text_color().into())
-                .finish(),
+            Text::new_inline(
+                settings_text("Usage", app),
+                appearance.ui_font_family(),
+                HEADER_FONT_SIZE,
+            )
+            .with_style(Properties::default().weight(Weight::Bold))
+            .with_color(theme.active_ui_text_color().into())
+            .finish(),
         );
 
         let mut right_side = Flex::row()
@@ -474,10 +480,11 @@ impl BillingCycleUsageSectionView {
             return None;
         }
         let theme = appearance.theme();
-        let reset_str = AIRequestUsageModel::as_ref(app)
+        let reset_time = AIRequestUsageModel::as_ref(app)
             .next_refresh_time_local()
-            .format("Resets %b %d, %-I:%M %p")
+            .format("%b %d, %-I:%M %p")
             .to_string();
+        let reset_str = settings_text("Resets {date}", app).replace("{date}", &reset_time);
         Some(
             Text::new_inline(
                 reset_str,
@@ -599,7 +606,7 @@ impl BillingCycleUsageSectionView {
                         .finish(),
                 );
             }
-            row.add_child(self.render_legend_entry(bucket.clone(), appearance));
+            row.add_child(self.render_legend_entry(bucket.clone(), appearance, app));
         }
         Some(row.finish())
     }
@@ -608,6 +615,7 @@ impl BillingCycleUsageSectionView {
         &self,
         cost_type: AiCreditsUsageAndCostType,
         appearance: &Appearance,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let (color, label) = legend_style_for(cost_type.clone());
         let theme = appearance.theme();
@@ -631,7 +639,7 @@ impl BillingCycleUsageSectionView {
             row.add_child(
                 Container::new(
                     Text::new_inline(
-                        label,
+                        settings_text(label, app),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -657,7 +665,7 @@ impl BillingCycleUsageSectionView {
             stack.add_child(entry);
             if state.is_hovered() {
                 stack.add_positioned_overlay_child(
-                    render_aggregate_legend_tooltip(appearance),
+                    render_aggregate_legend_tooltip(appearance, app),
                     OffsetPositioning::offset_from_parent(
                         vec2f(0., 6.),
                         ParentOffsetBounds::WindowByPosition,
@@ -712,8 +720,8 @@ impl BillingCycleUsageSectionView {
 
         Some(render_cta_banner(
             leading_icon,
-            link_text,
-            trailing_copy,
+            settings_text(link_text, app),
+            settings_text(trailing_copy, app),
             action,
             appearance,
         ))
@@ -773,11 +781,13 @@ fn legend_style_for(cost_type: AiCreditsUsageAndCostType) -> (ColorU, &'static s
     }
 }
 
-fn render_aggregate_legend_tooltip(appearance: &Appearance) -> Box<dyn Element> {
+fn render_aggregate_legend_tooltip(appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
     let theme = appearance.theme();
     let text = Text::new_inline(
-        "Other team members' usage across add-on, pay-as-you-go, and cloud-only credits."
-            .to_string(),
+        settings_text(
+            "Other team members' usage across add-on, pay-as-you-go, and cloud-only credits.",
+            app,
+        ),
         appearance.ui_font_family(),
         12.,
     )

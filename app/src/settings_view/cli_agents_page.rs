@@ -822,6 +822,6 @@ impl SettingsWidget for CLIAgentToolbarLayoutWidget {
             return Empty::new().finish();
         }
 
-        render_toolbar_layout_editor(&view.cli_agent_toolbar_inline_editor, appearance)
+        render_toolbar_layout_editor(&view.cli_agent_toolbar_inline_editor, appearance, app)
     }
 }

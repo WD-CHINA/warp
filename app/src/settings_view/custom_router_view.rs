@@ -11,7 +11,7 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, View, ViewContext, Vi
 use crate::ai::custom_model_routers::{CustomModelRouter, CustomModelRouting};
 use crate::ai::llms::{LLMId, LLMPreferences};
 use crate::appearance::Appearance;
-use crate::settings::AISettings;
+use crate::settings::{AISettings, settings_text};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::ActionButton;
 #[cfg(feature = "local_fs")]
@@ -47,8 +47,8 @@ impl CustomRouterView {
     #[cfg(feature = "local_fs")]
     pub fn new(router: CustomModelRouter, ctx: &mut ViewContext<Self>) -> Self {
         let is_any_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
-        let open_file_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Open file", SecondaryTheme)
+        let open_file_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Open file", ctx), SecondaryTheme)
                 .with_icon(Icon::File)
                 .with_size(ButtonSize::Small)
                 .with_height(HEADER_BUTTON_HEIGHT)
@@ -60,8 +60,8 @@ impl CustomRouterView {
             button.set_disabled(router.source_path.is_none(), ctx);
         });
 
-        let edit_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Edit", SecondaryTheme)
+        let edit_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Edit", ctx), SecondaryTheme)
                 .with_icon(Icon::Pencil)
                 .with_size(ButtonSize::Small)
                 .with_height(HEADER_BUTTON_HEIGHT)
@@ -73,8 +73,8 @@ impl CustomRouterView {
             button.set_disabled(!is_any_ai_enabled, ctx);
         });
 
-        let delete_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Delete", DangerSecondaryTheme)
+        let delete_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(settings_text("Delete", ctx), DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .with_size(ButtonSize::Small)
                 .with_height(HEADER_BUTTON_HEIGHT)
@@ -178,8 +178,8 @@ impl View for CustomRouterView {
 
         // Type label row
         let type_label = match &self.router.routing {
-            CustomModelRouting::Complexity(_) => "Complexity-based routing",
-            CustomModelRouting::Prompt(_) => "Prompt-based routing",
+            CustomModelRouting::Complexity(_) => settings_text("Complexity-based routing", app),
+            CustomModelRouting::Prompt(_) => settings_text("Prompt-based routing", app),
         };
         let type_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
@@ -257,7 +257,7 @@ fn render_targets_row(
     match routing {
         CustomModelRouting::Complexity(c) => {
             flex.add_child(render_model_line(
-                "Default:",
+                settings_text("Default:", app),
                 model_display_name(&c.default, app),
                 appearance,
                 sub_color,
@@ -265,7 +265,7 @@ fn render_targets_row(
             if let Some(easy) = &c.easy {
                 flex.add_child(
                     Container::new(render_model_line(
-                        "Easy:",
+                        settings_text("Easy:", app),
                         model_display_name(easy, app),
                         appearance,
                         sub_color,
@@ -277,7 +277,7 @@ fn render_targets_row(
             if let Some(medium) = &c.medium {
                 flex.add_child(
                     Container::new(render_model_line(
-                        "Medium:",
+                        settings_text("Medium:", app),
                         model_display_name(medium, app),
                         appearance,
                         sub_color,
@@ -289,7 +289,7 @@ fn render_targets_row(
             if let Some(hard) = &c.hard {
                 flex.add_child(
                     Container::new(render_model_line(
-                        "Hard:",
+                        settings_text("Hard:", app),
                         model_display_name(hard, app),
                         appearance,
                         sub_color,
@@ -301,7 +301,7 @@ fn render_targets_row(
         }
         CustomModelRouting::Prompt(p) => {
             flex.add_child(render_model_line(
-                "Default:",
+                settings_text("Default:", app),
                 model_display_name(&p.default_model, app),
                 appearance,
                 sub_color,
@@ -309,9 +309,10 @@ fn render_targets_row(
             let rule_count = p.rules.len();
             if rule_count > 0 {
                 let label = if rule_count == 1 {
-                    "1 rule".to_string()
+                    settings_text("1 rule", app).to_string()
                 } else {
-                    format!("{rule_count} rules")
+                    settings_text("{rule_count} rules", app)
+                        .replace("{rule_count}", &rule_count.to_string())
                 };
                 flex.add_child(
                     Container::new(

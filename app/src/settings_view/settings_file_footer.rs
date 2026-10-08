@@ -21,7 +21,7 @@ use warpui::platform::Cursor;
 
 use crate::WorkspaceAction;
 use crate::appearance::Appearance;
-use crate::settings::SettingsFileError;
+use crate::settings::{SettingsFileError, settings_text};
 use crate::ui_components::icons::Icon;
 
 /// Horizontal + vertical padding applied to the footer inside the sidebar.
@@ -100,6 +100,7 @@ pub struct SettingsFooterMouseStates {
 pub fn render_open_settings_file_button(
     appearance: &Appearance,
     mouse_state: MouseStateHandle,
+    app: &warpui::AppContext,
 ) -> Box<dyn Element> {
     let theme = appearance.theme();
     let text_fill = theme.nonactive_ui_text_color();
@@ -113,13 +114,17 @@ pub fn render_open_settings_file_button(
             .with_height(FOOTER_ICON_SIZE)
             .finish();
 
-        let label = Text::new_inline("Open settings file", ui_font_family, FOOTER_FONT_SIZE)
-            .with_color(text_color)
-            .with_style(Properties {
-                weight: Weight::Semibold,
-                ..Default::default()
-            })
-            .finish();
+        let label = Text::new_inline(
+            settings_text("Open settings file", app),
+            ui_font_family,
+            FOOTER_FONT_SIZE,
+        )
+        .with_color(text_color)
+        .with_style(Properties {
+            weight: Weight::Semibold,
+            ..Default::default()
+        })
+        .finish();
 
         // Use `MainAxisSize::Max` so the row (and its surrounding bordered
         // container) expands to fill the full sidebar width. The icon + text
@@ -159,6 +164,7 @@ pub fn render_settings_error_alert(
     error: &SettingsFileError,
     ai_enabled: bool,
     mouse_states: &SettingsFooterMouseStates,
+    app: &warpui::AppContext,
 ) -> Box<dyn Element> {
     let theme = appearance.theme();
     // Warning banner colors: yellow background, contrast-safe text on top of
@@ -228,7 +234,7 @@ pub fn render_settings_error_alert(
         ui_font_family,
         text_color,
         mouse_states.alert_open_file_button.clone(),
-        "Open file",
+        settings_text("Open file", app),
         /*icon=*/ None,
         /*bordered=*/ true,
         WorkspaceAction::OpenSettingsFile,
@@ -250,7 +256,7 @@ pub fn render_settings_error_alert(
             ui_font_family,
             text_color,
             mouse_states.alert_fix_with_oz_button.clone(),
-            "Fix with Warp Agent",
+            settings_text("Fix with Warp Agent", app),
             Some(Icon::Agent),
             /*bordered=*/ false,
             WorkspaceAction::FixSettingsWithOz { error_description },
@@ -289,21 +295,26 @@ pub fn render_footer(
     error: Option<&SettingsFileError>,
     ai_enabled: bool,
     mouse_states: &SettingsFooterMouseStates,
+    app: &warpui::AppContext,
 ) -> Box<dyn Element> {
     let inner: Box<dyn Element> = match kind {
         SettingsFooterKind::Hidden => return Empty::new().finish(),
         SettingsFooterKind::OpenButton => render_open_settings_file_button(
             appearance,
             mouse_states.open_settings_file_button.clone(),
+            app,
         ),
         SettingsFooterKind::ErrorAlert => match error {
-            Some(error) => render_settings_error_alert(appearance, error, ai_enabled, mouse_states),
+            Some(error) => {
+                render_settings_error_alert(appearance, error, ai_enabled, mouse_states, app)
+            }
             // Defensive fallback: if the error disappears between `choose` and
             // `render_footer`, fall back to the plain button rather than
             // rendering an empty alert shell.
             None => render_open_settings_file_button(
                 appearance,
                 mouse_states.open_settings_file_button.clone(),
+                app,
             ),
         },
     };
