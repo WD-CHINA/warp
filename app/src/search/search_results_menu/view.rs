@@ -19,6 +19,7 @@ use crate::search::mixer::SearchMixer;
 use crate::search::search_bar::{
     CreateQueryResultRendererFn, SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering,
 };
+use crate::settings::settings_text;
 
 const HEADER_HORIZONTAL_PADDING: f32 = 16.;
 const HEADER_VERTICAL_PADDING: f32 = 4.;
@@ -191,7 +192,7 @@ impl<T: Action + Clone> SearchResultsMenuView<T> {
         let theme = appearance.theme();
         Container::new(
             Text::new(
-                "No results found",
+                settings_text("No results found", app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -288,7 +289,7 @@ impl<T: Action + Clone> SearchResultsMenuView<T> {
 
         let mut column = Flex::column();
 
-        if let Some(title) = active_filter.and_then(renderable_title_name) {
+        if let Some(title) = active_filter.and_then(|filter| renderable_title_name(filter, app)) {
             column.add_child(
                 Container::new(
                     appearance
@@ -339,9 +340,9 @@ impl<T: Action + Clone> View for SearchResultsMenuView<T> {
     }
 }
 
-fn renderable_title_name(query_filter: QueryFilter) -> Option<&'static str> {
+fn renderable_title_name(query_filter: QueryFilter, app: &AppContext) -> Option<&'static str> {
     if matches!(query_filter, QueryFilter::AgentModeWorkflows) {
-        return Some("Prompts");
+        return Some(settings_text("Prompts", app));
     }
 
     None

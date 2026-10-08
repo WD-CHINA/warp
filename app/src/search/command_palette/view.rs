@@ -42,7 +42,7 @@ use crate::search::search_bar::{
 use crate::server::ids::SyncId;
 use crate::server::telemetry::{LaunchConfigUiLocation, TelemetryEvent};
 use crate::session_management::SessionSource;
-use crate::settings::CtrlTabBehavior;
+use crate::settings::{CtrlTabBehavior, settings_text};
 use crate::terminal::keys_settings::KeysSettings;
 use crate::themes::theme::WarpTheme;
 use crate::view_components::DismissibleToast;
@@ -285,7 +285,7 @@ impl View {
             SearchBar::new(
                 mixer.clone(),
                 search_bar_state.clone(),
-                "Search for a command",
+                settings_text("Search for a command", ctx),
                 Self::create_query_result_renderer,
                 ctx,
             )
@@ -297,7 +297,7 @@ impl View {
         });
 
         let placeholder_element = QueryResultRenderer::new(
-            MatchedBinding::placeholder("No results found".into()).into(),
+            MatchedBinding::placeholder(settings_text("No results found", ctx).into()).into(),
             "command_palette:no_results".into(),
             |_, _, _| {},
             *styles::QUERY_RESULT_RENDERER_STYLES,
@@ -850,8 +850,11 @@ impl View {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Cannot switch conversations while agent is monitoring a command."
-                                        .to_string(),
+                                    settings_text(
+                                        "Cannot switch conversations while agent is monitoring a command.",
+                                        ctx,
+                                    )
+                                    .to_string(),
                                 ),
                                 window_id,
                                 ctx,
@@ -992,7 +995,11 @@ impl View {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Cannot start a new conversation while agent is monitoring a command.".to_string(),
+                                settings_text(
+                                    "Cannot start a new conversation while agent is monitoring a command.",
+                                    ctx,
+                                )
+                                .to_string(),
                             ),
                             window_id,
                             ctx,

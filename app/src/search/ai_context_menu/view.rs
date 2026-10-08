@@ -55,7 +55,7 @@ use crate::search::data_source::{Query, QueryFilter, QueryResult};
 use crate::search::mixer::AddAsyncSourceOptions;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
-use crate::settings::InputSettings;
+use crate::settings::{InputSettings, settings_text};
 #[cfg(not(target_family = "wasm"))]
 use crate::workspace::ActiveSession;
 
@@ -1288,7 +1288,7 @@ impl AIContextMenu {
 
             let text = Container::new(
                 Text::new(
-                    category.name(),
+                    settings_text(category.name(), app),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size() - 1.0,
                 )
@@ -1372,7 +1372,7 @@ impl AIContextMenu {
         let theme = appearance.theme();
         Container::new(
             Text::new(
-                "No results found",
+                settings_text("No results found", app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -1388,7 +1388,7 @@ impl AIContextMenu {
         let theme = appearance.theme();
         Container::new(
             Text::new(
-                "Loading results...",
+                settings_text("Loading results...", app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -1405,7 +1405,7 @@ impl AIContextMenu {
         let theme = appearance.theme();
         Container::new(
             Text::new(
-                "Code symbols indexing...",
+                settings_text("Code symbols indexing...", app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -1556,7 +1556,7 @@ impl AIContextMenu {
 
         let title = Container::new(
             Text::new(
-                category.name(),
+                settings_text(category.name(), app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size() - 2.0,
             )

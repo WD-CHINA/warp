@@ -22,7 +22,7 @@ use crate::search::slash_command_menu::fuzzy_match::SlashCommandFuzzyMatchResult
 use crate::search::slash_command_menu::static_commands::{Availability, commands};
 use crate::search::slash_command_menu::{SlashCommandId, StaticCommand};
 use crate::settings::{
-    AISettings, AISettingsChangedEvent, PrivacySettings, PrivacySettingsChangedEvent,
+    AISettings, AISettingsChangedEvent, PrivacySettings, PrivacySettingsChangedEvent, settings_text,
 };
 use crate::terminal::cli_agent_sessions::{
     CLIAgentInputState, CLIAgentSessionsModel, CLIAgentSessionsModelEvent,
@@ -664,7 +664,7 @@ impl InlineItem {
             action: AcceptSlashCommandOrSavedPrompt::SlashCommand { id: *command_id },
             icon_path: command.supported_surfaces.gui_icon_path(),
             name: command.name.to_owned(),
-            description: Some(command.description.to_owned()),
+            description: Some(settings_text(command.description, app).to_owned()),
             font_family: appearance.monospace_font_family(),
             name_match_result: None,
             description_match_result: None,

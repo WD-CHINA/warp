@@ -14,6 +14,7 @@ use crate::search::command_palette::styles;
 use crate::search::files::icon::icon_from_file_path;
 use crate::search::item::{IconLocation, SearchItem};
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::ui_components::render_file_search_row::{FileSearchRowOptions, render_file_search_row};
 
 #[derive(Debug)]
@@ -161,7 +162,8 @@ impl SearchItem for CreateFileSearchItem {
         let text_color = highlight_state.sub_text_fill(appearance).into_solid();
 
         let label = Text::new_inline(
-            format!("Create a file named {}…", &self.file_name),
+            settings_text("Create a file named {file_name}…", app)
+                .replace("{file_name}", &self.file_name),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )

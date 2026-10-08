@@ -11,6 +11,7 @@ use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::styles;
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 
 #[derive(Debug, Clone)]
 pub struct DiffSetSearchItem {
@@ -19,20 +20,38 @@ pub struct DiffSetSearchItem {
 }
 
 impl DiffSetSearchItem {
-    pub fn name(&self) -> String {
+    fn name_template(&self) -> &'static str {
         match &self.diff_mode {
-            DiffMode::Head => "Uncommitted changes".to_string(),
-            DiffMode::MainBranch => "Changes vs. main branch".to_string(),
-            DiffMode::OtherBranch(branch) => format!("Changes vs. {branch}"),
+            DiffMode::Head => "Uncommitted changes",
+            DiffMode::MainBranch => "Changes vs. main branch",
+            DiffMode::OtherBranch(_) => "Changes vs. {branch}",
         }
     }
 
-    pub fn description(&self) -> String {
+    fn description_template(&self) -> &'static str {
         match &self.diff_mode {
-            DiffMode::Head => "All uncommitted changes in the working directory".to_string(),
-            DiffMode::MainBranch => "All changes compared to the main branch".to_string(),
-            DiffMode::OtherBranch(branch) => format!("All changes compared to {branch}"),
+            DiffMode::Head => "All uncommitted changes in the working directory",
+            DiffMode::MainBranch => "All changes compared to the main branch",
+            DiffMode::OtherBranch(_) => "All changes compared to {branch}",
         }
+    }
+
+    fn interpolate_branch(text: &str, diff_mode: &DiffMode) -> String {
+        match diff_mode {
+            DiffMode::OtherBranch(branch) => text.replace("{branch}", branch),
+            DiffMode::Head | DiffMode::MainBranch => text.to_string(),
+        }
+    }
+
+    pub fn name(&self, app: &AppContext) -> String {
+        Self::interpolate_branch(settings_text(self.name_template(), app), &self.diff_mode)
+    }
+
+    pub fn description(&self, app: &AppContext) -> String {
+        Self::interpolate_branch(
+            settings_text(self.description_template(), app),
+            &self.diff_mode,
+        )
     }
 }
 
@@ -68,14 +87,14 @@ impl SearchItem for DiffSetSearchItem {
         let appearance = Appearance::as_ref(app);
 
         let name_text = Text::new(
-            self.name(),
+            self.name(app),
             appearance.ui_font_family(),
             appearance.monospace_font_size() - 1.0,
         )
         .with_color(highlight_state.main_text_fill(appearance).into_solid());
 
         let description_text = Text::new(
-            self.description(),
+            self.description(app),
             appearance.ui_font_family(),
             appearance.monospace_font_size() - 2.0,
         )
@@ -112,7 +131,11 @@ impl SearchItem for DiffSetSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("{} - {}", self.name(), self.description())
+        format!(
+            "{} - {}",
+            Self::interpolate_branch(self.name_template(), &self.diff_mode),
+            Self::interpolate_branch(self.description_template(), &self.diff_mode)
+        )
     }
 }
 

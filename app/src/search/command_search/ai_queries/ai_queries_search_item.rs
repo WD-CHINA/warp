@@ -15,6 +15,7 @@ use crate::search::ai_queries::fuzzy_match::FuzzyMatchAIQueryResults;
 use crate::search::command_search::searcher::CommandSearchItemAction;
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::terminal::rich_history::{
     DETAILS_PARAGRAPH_SPACING, render_row_with_icon_and_paragraph,
 };
@@ -151,9 +152,9 @@ impl SearchItem for AIQuerySearchResultItem {
         details_column.add_child(
             Container::new(
                 ui_builder
-                    .paragraph(format!(
-                        "Ran {}",
-                        format_approx_duration_from_now(self.start_time)
+                    .paragraph(settings_text("Ran {duration}", ctx).replace(
+                        "{duration}",
+                        &format_approx_duration_from_now(self.start_time),
                     ))
                     .build()
                     .finish(),

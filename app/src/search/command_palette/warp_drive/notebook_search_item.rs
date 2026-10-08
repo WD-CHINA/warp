@@ -16,6 +16,7 @@ use crate::search::notebooks::fuzzy_match::{
     FuzzyMatchNotebookResult, render_notebook_matched_content_with_highlight,
 };
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::ui_components::icons::Icon;
 
 /// Search item result for a cloud notebook.
@@ -62,7 +63,7 @@ impl SearchItem for NotebookSearchItem {
     ) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let title = if self.cloud_notebook.model().title.is_empty() {
-            "Untitled".to_string()
+            settings_text("Untitled", app).to_string()
         } else {
             self.cloud_notebook.model().title.clone()
         };

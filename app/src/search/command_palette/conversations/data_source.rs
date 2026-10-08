@@ -16,6 +16,7 @@ use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::separator_search_item::SeparatorSearchItem;
 use crate::search::data_source::{DataSourceSearchError, Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
+use crate::settings::settings_text;
 use crate::workspace::Workspace;
 
 /// Sections for grouping conversations in the command palette.
@@ -186,7 +187,10 @@ impl SyncDataSource for DataSource {
                             .into(),
                         );
                     }
-                    results.push(SeparatorSearchItem::new(section.title().to_string()).into());
+                    results.push(
+                        SeparatorSearchItem::new(settings_text(section.title(), app).to_string())
+                            .into(),
+                    );
                 }
             }
 

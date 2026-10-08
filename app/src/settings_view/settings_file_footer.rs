@@ -177,7 +177,7 @@ pub fn render_settings_error_alert(
     // Copy is shared with `Workspace::render_settings_error_banner` via
     // `SettingsFileError::heading_and_description` so the two UIs can't
     // drift out of sync.
-    let (heading, description) = error.heading_and_description();
+    let (heading, description) = error.heading_and_description(app);
     let heading_char_count = heading.chars().count();
     let combined_text = format!("{heading} {description}");
     // Soft-wrap (the `Text::new` default) is appropriate here since the

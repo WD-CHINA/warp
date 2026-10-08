@@ -13,26 +13,29 @@ use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::styles;
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::terminal::model::block::BlockId;
 use crate::util::truncation::truncate_from_end;
 
 /// Calculate how long ago a timestamp was
-fn time_ago_string(timestamp: Option<&DateTime<Local>>) -> String {
+fn time_ago_string(timestamp: Option<&DateTime<Local>>, ctx: &AppContext) -> String {
     let Some(timestamp) = timestamp else {
-        return "Just now".to_string();
+        return settings_text("Just now", ctx).to_string();
     };
 
     let now = Local::now();
     let duration = now.signed_duration_since(*timestamp);
 
     if duration.num_seconds() < 60 {
-        "Just now".to_string()
+        settings_text("Just now", ctx).to_string()
     } else if duration.num_minutes() < 60 {
-        format!("{} minutes ago", duration.num_minutes())
+        settings_text("{count} minutes ago", ctx)
+            .replace("{count}", &duration.num_minutes().to_string())
     } else if duration.num_hours() < 24 {
-        format!("{} hours ago", duration.num_hours())
+        settings_text("{count} hours ago", ctx)
+            .replace("{count}", &duration.num_hours().to_string())
     } else {
-        format!("{} days ago", duration.num_days())
+        settings_text("{count} days ago", ctx).replace("{count}", &duration.num_days().to_string())
     }
 }
 
@@ -135,7 +138,7 @@ impl SearchItem for BlockSearchItem {
 
         // Create sub text: last 3 lines of output
         let sub_text = if self.output_lines.is_empty() {
-            "No output".to_string()
+            settings_text("No output", ctx).to_string()
         } else {
             let joined = self.output_lines.join("\n").trim().to_string();
             // Additional safety truncation for the hover card
@@ -143,7 +146,7 @@ impl SearchItem for BlockSearchItem {
         };
 
         // Create time ago text
-        let time_ago_text = time_ago_string(self.completed_ts.as_ref());
+        let time_ago_text = time_ago_string(self.completed_ts.as_ref(), ctx);
 
         // Create main text element - use monospace font for command
         let main_text_element = Text::new(

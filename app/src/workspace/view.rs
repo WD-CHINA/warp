@@ -353,7 +353,7 @@ use crate::settings::{
     CodeSettingsChangedEvent, CtrlTabBehavior, CursorBlink, DebugSettings, DefaultSessionMode,
     FontSettings, GPUSettings, InputModeSettings, InputSettings, MonospaceFontSize, PaneSettings,
     PrivacySettings, SelectionSettings, Settings, SshSettings, ThemeSettings, active_theme_kind,
-    respect_system_theme,
+    respect_system_theme, settings_text,
 };
 use crate::settings_view::environments_page::EnvironmentsPage;
 use crate::settings_view::handoff_environment_creation_modal::{
@@ -22397,12 +22397,12 @@ impl Workspace {
             return None;
         }
         let error = self.settings_file_error.as_ref()?;
-        let (heading, description) = error.heading_and_description();
+        let (heading, description) = error.heading_and_description(app);
         let secondary_button =
             AISettings::as_ref(app)
                 .is_any_ai_enabled(app)
                 .then(|| WorkspaceBannerButtonDetails {
-                    text: "Fix with Warp Agent".to_owned(),
+                    text: settings_text("Fix with Warp Agent", app).to_owned(),
                     action: WorkspaceAction::FixSettingsWithOz {
                         error_description: error.to_string(),
                     },

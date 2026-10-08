@@ -7,6 +7,7 @@ use crate::appearance::Appearance;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::result_renderer::QueryResultRenderer;
 use crate::search::search_bar::SelectionUpdate;
+use crate::settings::settings_text;
 
 /// List of items shown within the zero state. "Recent" items are shown first followed by
 /// "Suggested" items.
@@ -170,7 +171,10 @@ impl Items {
         let mut flex = Flex::column();
 
         if !self.recent.is_empty() {
-            flex.add_child(Self::render_section_text("Recent", appearance));
+            flex.add_child(Self::render_section_text(
+                settings_text("Recent", app),
+                appearance,
+            ));
 
             flex.add_children(self.recent.iter().enumerate().map(|(idx, result)| {
                 Self::render_query_result(
@@ -183,7 +187,10 @@ impl Items {
         }
 
         if !self.suggested.is_empty() {
-            flex.add_child(Self::render_section_text("Suggested", appearance));
+            flex.add_child(Self::render_section_text(
+                settings_text("Suggested", app),
+                appearance,
+            ));
 
             flex.add_children(self.suggested.iter().enumerate().map(|(idx, result)| {
                 Self::render_query_result(

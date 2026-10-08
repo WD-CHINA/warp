@@ -14,6 +14,7 @@ use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::{safe_truncate, styles};
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 
 const MAX_COMBINED_LENGTH: usize = 55;
 
@@ -170,10 +171,10 @@ impl SearchItem for RuleSearchItem {
             if !name.is_empty() {
                 name.clone()
             } else {
-                "Rule".to_string()
+                settings_text("Rule", ctx).to_string()
             }
         } else {
-            "Rule".to_string()
+            settings_text("Rule", ctx).to_string()
         };
 
         // Create title element

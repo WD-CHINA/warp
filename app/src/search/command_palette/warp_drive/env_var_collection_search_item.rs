@@ -15,6 +15,7 @@ use crate::search::command_palette::styles::SEARCH_ITEM_TEXT_PADDING;
 use crate::search::env_var_collections::fuzzy_match::FuzzyMatchEnvVarCollectionResult;
 use crate::search::item::{IconLocation, SearchItem};
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::ui_components::icons::Icon;
 
 pub const ENV_VAR_NAME_SEPARATOR: &str = ", ";
@@ -63,7 +64,7 @@ impl SearchItem for EnvVarCollectionSearchItem {
                 .string_model
                 .title
                 .clone()
-                .unwrap_or("Untitled".to_owned())
+                .unwrap_or(settings_text("Untitled", app).to_owned())
                 .to_owned(),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),

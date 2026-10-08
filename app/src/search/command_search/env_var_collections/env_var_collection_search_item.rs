@@ -14,6 +14,7 @@ use crate::search::command_search::searcher::CommandSearchItemAction;
 use crate::search::env_var_collections::fuzzy_match::FuzzyMatchEnvVarCollectionResult;
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 
 const ENV_VAR_COLLECTION_ICON_PATH: &str = "bundled/svg/env-var-collection.svg";
 
@@ -25,7 +26,7 @@ pub struct EnvVarCollectionSearchItem {
 }
 
 impl EnvVarCollectionSearchItem {
-    fn render_name(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_name(&self, app: &AppContext, appearance: &Appearance) -> Box<dyn Element> {
         let env_var_collection = self.env_var_collection.model().string_model.clone();
 
         appearance
@@ -34,7 +35,7 @@ impl EnvVarCollectionSearchItem {
                 env_var_collection
                     .title
                     .clone()
-                    .unwrap_or("Untitled".to_owned()),
+                    .unwrap_or_else(|| settings_text("Untitled", app).to_owned()),
                 true,
             )
             .with_style(UiComponentStyles {
@@ -92,7 +93,7 @@ impl SearchItem for EnvVarCollectionSearchItem {
             env_var_collection
                 .title
                 .clone()
-                .unwrap_or("Untitled".to_owned()),
+                .unwrap_or_else(|| settings_text("Untitled", app).to_owned()),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )
@@ -148,7 +149,7 @@ impl SearchItem for EnvVarCollectionSearchItem {
         let mut flex_column = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
             .with_child(
-                Container::new(self.render_name(appearance))
+                Container::new(self.render_name(ctx, appearance))
                     .with_margin_bottom(16.)
                     .finish(),
             );

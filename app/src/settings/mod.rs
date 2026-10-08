@@ -113,21 +113,38 @@ impl SettingsFileError {
     /// this error. Shared between the workspace-level banner
     /// (`Workspace::render_settings_error_banner`) and the settings nav rail
     /// footer (`render_settings_error_alert`) so the two UIs stay in sync.
-    pub fn heading_and_description(&self) -> (String, String) {
+    pub fn heading_and_description(&self, app: &AppContext) -> (String, String) {
+        let error_message = self.localized_message(app);
         match self {
             Self::FileParseFailed(_) => (
-                "Your settings file contains an error.".to_owned(),
-                format!("{self}. Open the file to fix it."),
+                settings_text("Your settings file contains an error.", app).to_owned(),
+                settings_text("{error}. Open the file to fix it.", app)
+                    .replace("{error}", &error_message),
             ),
             Self::InvalidSettings(keys) => match keys.len() {
                 1 => (
-                    "Your settings file contains an error.".to_owned(),
-                    format!("{self}. The default value is being used."),
+                    settings_text("Your settings file contains an error.", app).to_owned(),
+                    settings_text("{error}. The default value is being used.", app)
+                        .replace("{error}", &error_message),
                 ),
                 _ => (
-                    "Your settings file contains errors.".to_owned(),
-                    format!("{self}. Default values are being used."),
+                    settings_text("Your settings file contains errors.", app).to_owned(),
+                    settings_text("{error}. Default values are being used.", app)
+                        .replace("{error}", &error_message),
                 ),
+            },
+        }
+    }
+
+    fn localized_message(&self, app: &AppContext) -> String {
+        match self {
+            Self::FileParseFailed(_) => {
+                settings_text("Couldn't parse due to invalid syntax", app).to_owned()
+            }
+            Self::InvalidSettings(keys) => match keys.as_slice() {
+                [key] => settings_text("Invalid value for '{key}'", app).replace("{key}", key),
+                _ => settings_text("Invalid values for: {keys}", app)
+                    .replace("{keys}", &keys.join(", ")),
             },
         }
     }

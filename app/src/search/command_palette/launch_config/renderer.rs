@@ -1,4 +1,3 @@
-use warpui::Element;
 use warpui::elements::{
     Align, Border, ConstrainedBox, Container, CornerRadius, Flex, Highlight, ParentElement, Radius,
     Shrinkable, Text,
@@ -6,10 +5,12 @@ use warpui::elements::{
 use warpui::fonts::{Properties, Weight};
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::ui_components::text::Span;
+use warpui::{AppContext, Element};
 
 use crate::appearance::Appearance;
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::themes::theme::Fill;
 
 impl LaunchConfig {
@@ -20,6 +21,7 @@ impl LaunchConfig {
         appearance: &Appearance,
         item_highlight_state: ItemHighlightState,
         highlight_indices: Vec<usize>,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         let bg_color = background_fill(item_highlight_state, appearance);
 
@@ -38,7 +40,7 @@ impl LaunchConfig {
         configuration.add_child(Shrinkable::new(1., Align::new(label).left().finish()).finish());
 
         configuration.add_child(
-            Container::new(self.render_config_description(appearance))
+            Container::new(self.render_config_description(appearance, app))
                 .with_margin_right(14.)
                 .finish(),
         );
@@ -110,18 +112,22 @@ impl LaunchConfig {
         container.finish()
     }
 
-    fn render_config_description(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_config_description(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let num_windows = self.windows.len();
         let num_tabs: usize = self.windows.iter().map(|window| window.tabs.len()).sum();
         let mut windows_str = num_windows.to_string();
         match num_windows {
-            1 => windows_str.push_str(" window "),
-            _ => windows_str.push_str(" windows"),
+            1 => windows_str.push_str(settings_text(" window ", app)),
+            _ => windows_str.push_str(settings_text(" windows", app)),
         }
         let mut tabs_str = num_tabs.to_string();
         match num_tabs {
-            1 => tabs_str.push_str(" tab "),
-            _ => tabs_str.push_str(" tabs"),
+            1 => tabs_str.push_str(settings_text(" tab ", app)),
+            _ => tabs_str.push_str(settings_text(" tabs", app)),
         }
         Flex::row()
             .with_children(vec![

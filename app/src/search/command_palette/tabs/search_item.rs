@@ -9,6 +9,7 @@ use crate::search::command_palette::render_util::render_search_item_icon;
 use crate::search::item::{IconLocation, SearchItem as SearchItemTrait};
 use crate::search::result_renderer::ItemHighlightState;
 use crate::session_management::TabNavigationData;
+use crate::settings::settings_text;
 use crate::ui_components::icons::Icon;
 
 /// These items appear in the ctrl-tab palette only, not the main command palette.
@@ -60,7 +61,12 @@ impl SearchItemTrait for SearchItem {
         let appearance = Appearance::as_ref(app);
 
         let title_text = Text::new_inline(
-            format!("{} · Tab {}", self.tab.title, self.tab.tab_index),
+            format!(
+                "{} · {} {}",
+                self.tab.title,
+                settings_text("Tab", app),
+                self.tab.tab_index
+            ),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )

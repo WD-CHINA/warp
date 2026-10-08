@@ -25,6 +25,7 @@ use crate::search::command_palette::render_util::render_search_item_icon;
 use crate::search::command_palette::view::Action;
 use crate::search::item::IconLocation;
 use crate::search::result_renderer::ItemHighlightState;
+use crate::settings::settings_text;
 use crate::ui_components::buttons::icon_button;
 use crate::util::time_format::format_approx_duration_from_now;
 
@@ -68,7 +69,7 @@ impl ConversationSearchItem {
         Flex::row()
             .with_child(
                 Text::new_inline(
-                    "New conversation",
+                    settings_text("New conversation", app),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -89,7 +90,7 @@ impl ConversationSearchItem {
         let appearance = Appearance::as_ref(app);
 
         let action_title = Text::new_inline(
-            "Fork current conversation",
+            settings_text("Fork current conversation", app),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )
@@ -244,7 +245,7 @@ impl ConversationSearchItem {
 
             let fork_button_tool_tip = appearance
                 .ui_builder()
-                .tool_tip("Fork conversation".to_string())
+                .tool_tip(settings_text("Fork conversation", app).to_string())
                 .build();
 
             let fork_button_inner = icon_button(
